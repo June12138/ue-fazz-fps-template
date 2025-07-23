@@ -27,11 +27,16 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
 	FVector StartLocation;
+	FVector StartRotation;
 	FVector Result;
+	FVector RotationResult;
 	//后坐力相关
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") FVector RecoilOffset; //后座终止位置
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") FVector RecoilOffset; //后座终止位置偏移
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilOffsetJitter; //后座随机偏移 
 	FVector CurrentRecoilOffset;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffset; //后座终止旋转偏移
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffsetJitter;//后座旋转随机偏移 
+	FVector CurrentRecoilRotationOffset;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime;
 	float CurrentRecoilTime = 0.0f;
@@ -40,4 +45,5 @@ public:
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
 	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, UCameraComponent* CameraRootToSet);
+	FVector JitterVector(FVector Input, FVector Jitter);
 };
