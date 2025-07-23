@@ -26,16 +26,16 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
-	FVector BaseStartLocation;
-	FVector OutVector;
-	//后坐力相关数据
+	FVector StartLocation;
+	FVector Result;
+	//后坐力相关
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") FVector RecoilOffset; //后座终止位置
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilOffsetJitter; //后座随机偏移 
 	FVector CurrentRecoilOffset;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime;
 	float CurrentRecoilTime = 0.0f;
-	UFUNCTION(BlueprintCallable) FVector GetRecoilEnd();
+	void UpdateRecoilEnd();
 	UFUNCTION(BlueprintCallable)
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
