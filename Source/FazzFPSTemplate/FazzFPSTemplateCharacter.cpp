@@ -26,6 +26,10 @@ AFazzFPSTemplateCharacter::AFazzFPSTemplateCharacter()
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-10.f, 0.f, 60.f)); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
+	// 武器根节点
+	WeaponRoot = CreateDefaultSubobject<USceneComponent>(TEXT("WeaponRoot"));
+	WeaponRoot->SetupAttachment(FirstPersonCameraComponent);
+	WeaponRoot->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
 	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
 	Mesh1P->SetOnlyOwnerSee(true);
@@ -33,11 +37,6 @@ AFazzFPSTemplateCharacter::AFazzFPSTemplateCharacter()
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;
 	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
-	// 武器根节点
-	WeaponRoot = CreateDefaultSubobject<USceneComponent>(TEXT("WeaponRoot"));
-	WeaponRoot->SetupAttachment(FirstPersonCameraComponent);
-	WeaponRoot->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
-
 }
 
 //////////////////////////////////////////////////////////////////////////// Input
