@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "Camera/CameraComponent.h"
+#include "WeaponBobStruct.h"
 #include "WeaponAnimComponent_CPP.generated.h"
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -61,18 +62,14 @@ public:
 	float BobNoiseCurrent = 0.5;
 	FVector CurrentBobResult;
 	FVector BobResult;
+	FRotator CurrentBobResultRot;
+	FRotator BobResultRot;
 	void UpdateBob();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 5;
-		//Idle晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobFrequencyMultiplierIdle = 0.75;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobLongitudeIdleZ = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobLongitudeIdleY = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobNoiseIdle = 0.5;
-		//走路晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobFrequencyMultiplierWalk = 4;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobLongitudeWalkZ = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobLongitudeWalkY = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobNoiseWalk = 0.7;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 2;
+	//Idle晃动
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
