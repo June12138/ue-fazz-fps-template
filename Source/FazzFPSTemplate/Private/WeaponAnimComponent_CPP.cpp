@@ -28,7 +28,7 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, UCameraCom
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot) {
 		StartLocation = WeaponRoot->GetRelativeLocation();
-		StartRotation = FVector(WeaponRoot->GetRelativeRotation().Pitch, WeaponRoot->GetRelativeRotation().Yaw, WeaponRoot->GetRelativeRotation().Roll);
+		StartRotation = WeaponRoot->GetRelativeRotation();
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponRoot is null"));
@@ -69,9 +69,10 @@ void UWeaponAnimComponent_CPP::UpdateBob()
 	BobResult = TargetBobResult;
 }
 
-void UWeaponAnimComponent_CPP::SetInputVector(FVector Vector)
+void UWeaponAnimComponent_CPP::SetInput(FVector Vector, FRotator Rotator)
 {
 	InputVector = Vector;
+	InputRotator = Rotator;
 }
 
 // Called every frame
@@ -79,37 +80,39 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	ElapsedTime += DeltaTime;
-
-	FVector RecoilResult = FVector(0.f, 0.f, 0.f);
-	FVector RecoilRotationResult = FVector(0.f, 0.f, 0.f);
-
+	//武器后坐处理
+	FVector RecoilResult = FVector::ZeroVector;
+	FRotator RecoilRotationResult = FRotator::ZeroRotator;
 	// 后坐力处理
 	if (IsPlayingRecoilAnim && RecoilCurve)
 	{
 		CurrentRecoilTime = FMath::Clamp(CurrentRecoilTime + DeltaTime, 0.f, RecoilAnimTime);
 		float alpha = RecoilCurve->GetFloatValue(CurrentRecoilTime / RecoilAnimTime);
 		RecoilResult = FMath::Lerp(FVector(0.f, 0.f, 0.f), CurrentRecoilOffset, alpha);
-		RecoilRotationResult = FMath::Lerp(FVector(0.f, 0.f, 0.f), CurrentRecoilRotationOffset, alpha);
+		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), CurrentRecoilRotationOffset, alpha);
+		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
 			IsPlayingRecoilAnim = false;
 			CurrentRecoilTime = 0.f;
 		}
 	}
-
-	// 武器摇晃处理
+	//武器摇晃处理
 	UpdateBob();
 	CurrentBobResult = FMath::VInterpTo(CurrentBobResult, BobResult, DeltaTime, BobInterpolationRate);
+	//武器Sway处理
+	UpdateSway();
+	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 
 	// 合并结果
 	Result = StartLocation + RecoilResult + CurrentBobResult;
-	RotationResult = StartRotation + RecoilRotationResult;
+	RotationResult = FRotator(StartRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion());
 
 	// 应用到武器
 	if (WeaponRoot)
 	{
 		WeaponRoot->SetRelativeLocation(Result);
-		WeaponRoot->SetRelativeRotation(FRotator(RotationResult.X, RotationResult.Y, RotationResult.Z));
+		WeaponRoot->SetRelativeRotation(RotationResult);
 	}
 	else
 	{
@@ -134,4 +137,10 @@ FVector UWeaponAnimComponent_CPP::JitterVector(FVector Input, FVector Jitter) {
 	float Y = FMath::RandRange(Input.Y - Jitter.Y / 2, Input.Y + Jitter.Y / 2);
 	float Z = FMath::RandRange(Input.Z - Jitter.Z / 2, Input.Z + Jitter.Z / 2);
 	return FVector(X, Y, Z);
+}
+
+void UWeaponAnimComponent_CPP::UpdateSway() {
+	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier * -1, -SwayPitchMax/2, SwayPitchMax/2);
+	TargetSway = FRotator(0.f, Yaw, Pitch);
 }

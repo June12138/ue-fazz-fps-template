@@ -27,10 +27,15 @@ public:
 	float ElapsedTime = 0.f;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
+	//设置玩家输入数据
+	UFUNCTION(BlueprintCallable) void SetInput(FVector Vector, FRotator Rotator);
+	FVector InputVector;
+	FRotator InputRotator;
+	//
 	FVector StartLocation;
-	FVector StartRotation;
+	FRotator StartRotation;
 	FVector Result;
-	FVector RotationResult;
+	FRotator RotationResult;
 	FVector JitterVector(FVector Input, FVector Jitter);
 	//后坐力相关
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //后坐力动画时间
@@ -59,16 +64,22 @@ public:
 	void UpdateBob();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 5;
 		//Idle晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobFrequencyMultiplierIdle = 0.75;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobLongitudeIdleZ = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobLongitudeIdleY = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobNoiseIdle = 0.5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobFrequencyMultiplierIdle = 0.75;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobLongitudeIdleZ = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobLongitudeIdleY = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Idle") float BobNoiseIdle = 0.5;
 		//走路晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobFrequencyMultiplierWalk = 4;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobLongitudeWalkZ = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobLongitudeWalkY = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobNoiseWalk = 0.7;
-	FVector InputVector;
-	UFUNCTION(BlueprintCallable)
-	void SetInputVector(FVector Vector);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobFrequencyMultiplierWalk = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobLongitudeWalkZ = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobLongitudeWalkY = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob|Walk") float BobNoiseWalk = 0.7;
+	// Sway相关
+	FRotator CurrentSway = FRotator::ZeroRotator;
+	FRotator TargetSway = FRotator::ZeroRotator;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayYawMultiplier = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayYawMax = 15;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMultiplier = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMax = 15;
+	void UpdateSway();
 };
