@@ -27,7 +27,9 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	float ElapsedTime = 0.f;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* Sight = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
+	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet);
 	//设置玩家输入数据
 	UFUNCTION(BlueprintCallable) void SetInput(FVector Vector, FRotator Rotator);
 	FVector InputVector;
@@ -62,7 +64,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
-	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, UCameraComponent* CameraRootToSet);
 	//武器晃动相关
 	float BobFrequencyMultiplierCurrent = 0.75;
 	float BobLongitudeCurrentZ = 1.f;
@@ -92,4 +93,5 @@ public:
 	bool isAiming = false;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS();
+	FTransform SightRelativeTransform;
 };

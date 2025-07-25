@@ -3,13 +3,14 @@
 
 #include "WeaponAnimComponent_CPP.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Math/UnrealMathUtility.h"
 
 // Sets default values for this component's properties
 UWeaponAnimComponent_CPP::UWeaponAnimComponent_CPP()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	bAutoActivate = true;
+	//bAutoActivate = true;
 	SetComponentTickEnabled(true);
 }
 
@@ -21,17 +22,21 @@ void UWeaponAnimComponent_CPP::BeginPlay()
 	// ...
 }
 
-void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, UCameraComponent* CameraRootToSet)
+void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet)
 {
 	WeaponRoot = WeaponRootToSet;
+	Sight = SightToSet;
 	CameraRoot = CameraRootToSet;
 	CurrentBobResult = FVector::ZeroVector;
-	if (WeaponRoot) {
+	if (WeaponRoot && CameraRoot && Sight) {
 		DefaultLocation = WeaponRoot->GetRelativeLocation();
 		DefaultRotation = WeaponRoot->GetRelativeRotation();
+		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
+		UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
+		UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
 	}
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("WeaponRoot is null"));
+		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
 	}
 }
 
@@ -59,7 +64,7 @@ void UWeaponAnimComponent_CPP::UpdateBob()
 	float Pitch = VerticalMultiplier * CurrentBob->BobPitch + Noise;
     float Yaw = HorizontalMultiplier * CurrentBob->BobYaw + Noise;
 	BobResult = FVector(0.f, Y, Z);
-	BobResultRot = FRotator(0.f, Yaw, Pitch);
+	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }
 
 void UWeaponAnimComponent_CPP::SetInput(FVector Vector, FRotator Rotator)
@@ -135,16 +140,18 @@ FVector UWeaponAnimComponent_CPP::JitterVector(FVector Input, FVector Jitter) {
 
 void UWeaponAnimComponent_CPP::UpdateSway() {
 	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
-	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier * -1, -SwayPitchMax/2, SwayPitchMax/2);
-	TargetSway = FRotator(0.f, Yaw, Pitch);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier, -SwayPitchMax/2, SwayPitchMax/2);
+	TargetSway = FRotator(Pitch, Yaw, 0.f);
 }
 
 void UWeaponAnimComponent_CPP::StartADS()
 {
+	*TargetBaseLocation = DefaultLocation - SightRelativeTransform.GetLocation();
 	isAiming = true;
 }
 
 void UWeaponAnimComponent_CPP::EndADS()
 {
+	*TargetBaseLocation = DefaultLocation + SightRelativeTransform.GetLocation();
 	isAiming = false;
 }
