@@ -30,7 +30,9 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComp
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot && CameraRoot && Sight) {
 		DefaultLocation = WeaponRoot->GetRelativeLocation();
+		CurrentBaseLocation = DefaultLocation;
 		DefaultRotation = WeaponRoot->GetRelativeRotation();
+		CurrentBaseRotation = DefaultRotation;
 		//设置ADS基准位置
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
 		AimLocation = DefaultLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
@@ -82,27 +84,6 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!ShouldPlayAnimation) return;
 	ElapsedTime += DeltaTime;
-	//ADS处理
-	if (PlayingADSAnimation && ADSCurve) {
-		if (ToADS) {
-			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
-			if (CurrentADSTime == ADSTime)
-			{
-				PlayingADSAnimation = false;
-				IsAiming = true;
-			}
-		}
-		else {
-			CurrentADSTime = FMath::Clamp(CurrentADSTime - DeltaTime, 0.f, ADSTime);
-			if (CurrentADSTime == 0.f)
-			{
-				PlayingADSAnimation = false;
-			}
-		}
-		FVector Offset = -SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
-		float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
-		CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
-	}
 	//武器后坐处理
 	FVector RecoilResult = FVector::ZeroVector;
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
@@ -127,10 +108,12 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 	// 合并结果
-	FVector TotalOffset = RecoilResult + CurrentBobResult + CurrentADSOffset;
+	FVector TotalOffset = RecoilResult + CurrentBobResult;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
-	Result = *TargetBaseLocation + TotalOffset + CorrectSightLocation(TotalOffset, TotalRotationOffset, DeltaTime);
-	RotationResult = FRotator(TargetBaseRotation->Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
+	//ADS处理：务必最后结算！！！
+	FVector ADSLocation = GetADSLocation(TotalOffset, TotalRotationOffset, DeltaTime);
+	Result = CurrentBaseLocation + TotalOffset + ADSLocation;
+	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	if (WeaponRoot)
 	{
 		WeaponRoot->SetRelativeLocation(Result);
@@ -171,6 +154,7 @@ void UWeaponAnimComponent_CPP::StartADS()
 {
 	ToADS = true;
 	PlayingADSAnimation = true;
+	TargetBaseRotation = &AimRotation;
 }
 
 void UWeaponAnimComponent_CPP::EndADS()
@@ -180,17 +164,28 @@ void UWeaponAnimComponent_CPP::EndADS()
 	PlayingADSAnimation = true;
 }
 
-FVector UWeaponAnimComponent_CPP::CorrectSightLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
+FVector UWeaponAnimComponent_CPP::GetADSLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
-	FVector SightCorrection = FVector::ZeroVector;
-	if (IsAiming) {
-		FVector PredictedSightLocation = *TargetBaseLocation + TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
-		FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
-		SightCorrection = -1 * PredictedDeviation;
-		SightCorrectionAlpha = FMath::Clamp(SightCorrectionAlpha + DeltaTime * SightCorrectionSpeed_ToADS, 0.f, 1.f);
+	if (PlayingADSAnimation && ADSCurve) {
+		if (ToADS) {
+			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
+			if (CurrentADSTime == ADSTime)
+			{
+				PlayingADSAnimation = false;
+				IsAiming = true;
+			}
+		}
+		else {
+			CurrentADSTime = FMath::Clamp(CurrentADSTime - DeltaTime, 0.f, ADSTime);
+			if (CurrentADSTime == 0.f)
+			{
+				PlayingADSAnimation = false;
+			}
+		}
+		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
-	else {
-		SightCorrectionAlpha = FMath::Clamp(SightCorrectionAlpha - DeltaTime * SightCorrectionSpeed_FromADS, 0.f, 1.f);
-	}
-	return SightCorrection * SightCorrectionAlpha;
+	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
+	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
+	FVector SightCorrection = -1 * PredictedDeviation;
+	return SightCorrection * ADSAlpha;
 }

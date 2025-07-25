@@ -39,7 +39,7 @@ public:
 	FVector DefaultLocation;
 	FRotator DefaultRotation;
 	FVector AimLocation;
-	FRotator AimRotation;
+	FRotator AimRotation = FRotator(0.f, 0.f, 0.f);
 	//当前基准参数
 	FVector* TargetBaseLocation = &DefaultLocation;
 	FRotator* TargetBaseRotation = &DefaultRotation;
@@ -105,9 +105,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.4;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 50;
 	// 准星位置修正
-	FVector CorrectSightLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
+	FVector GetADSLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_ToADS = 50;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_FromADS = 5;
-	float SightCorrectionAlpha = 0.f;
+	float ADSAlpha = 0.f;
 };
