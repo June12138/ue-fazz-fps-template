@@ -102,6 +102,12 @@ public:
 	UFUNCTION(BlueprintCallable) void EndADS();
 	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.4;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 50;
+	// ×¼ÐÇÎ»ÖÃÐÞÕý
+	FVector CorrectSightLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
+	FVector Sight_RootOffset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_ToADS = 50;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_FromADS = 5;
+	float SightCorrectionAlpha = 0.f;
 };

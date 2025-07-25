@@ -34,6 +34,7 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComp
 		//设置ADS基准位置
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
 		AimLocation = DefaultLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
+		Sight_RootOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
 		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
 		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
 	}
@@ -83,11 +84,8 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	ElapsedTime += DeltaTime;
 	//ADS处理
 	if (PlayingADSAnimation && ADSCurve) {
-		FVector Offset = -SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
 		if (ToADS) {
 			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
-			float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
-			CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
 			if (CurrentADSTime == ADSTime)
 			{
 				PlayingADSAnimation = false;
@@ -96,18 +94,18 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 		}
 		else {
 			CurrentADSTime = FMath::Clamp(CurrentADSTime - DeltaTime, 0.f, ADSTime);
-			float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
-			CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
 			if (CurrentADSTime == 0.f)
 			{
 				PlayingADSAnimation = false;
 			}
 		}
+		FVector Offset = -SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
+		float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
+		CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
 	}
 	//武器后坐处理
 	FVector RecoilResult = FVector::ZeroVector;
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
-	// 后坐力处理
 	if (IsPlayingRecoilAnim && RecoilCurve)
 	{
 		CurrentRecoilTime = FMath::Clamp(CurrentRecoilTime + DeltaTime, 0.f, RecoilAnimTime);
@@ -128,13 +126,11 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	//武器Sway处理
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
-
 	// 合并结果
 	FVector TotalOffset = RecoilResult + CurrentBobResult + CurrentADSOffset;
-	Result = *TargetBaseLocation + TotalOffset;
+	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
+	Result = *TargetBaseLocation + TotalOffset + CorrectSightLocation(TotalOffset, TotalRotationOffset, DeltaTime);
 	RotationResult = FRotator(TargetBaseRotation->Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
-	// 如果正在ADS，保持准星锁定到摄像头前方
-	// 应用到武器
 	if (WeaponRoot)
 	{
 		WeaponRoot->SetRelativeLocation(Result);
@@ -182,4 +178,19 @@ void UWeaponAnimComponent_CPP::EndADS()
 	ToADS = false;
 	IsAiming = false;
 	PlayingADSAnimation = true;
+}
+
+FVector UWeaponAnimComponent_CPP::CorrectSightLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
+{
+	FVector SightCorrection = FVector::ZeroVector;
+	if (IsAiming) {
+		FVector PredictedSightLocation = *TargetBaseLocation + TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
+		FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
+		SightCorrection = -1 * PredictedDeviation;
+		SightCorrectionAlpha = FMath::Clamp(SightCorrectionAlpha + DeltaTime * SightCorrectionSpeed_ToADS, 0.f, 1.f);
+	}
+	else {
+		SightCorrectionAlpha = FMath::Clamp(SightCorrectionAlpha - DeltaTime * SightCorrectionSpeed_FromADS, 0.f, 1.f);
+	}
+	return SightCorrection * SightCorrectionAlpha;
 }
