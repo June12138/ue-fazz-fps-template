@@ -26,6 +26,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	float ElapsedTime = 0.f;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere) bool ShouldPlayAnimation = true;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* Sight = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
@@ -42,6 +43,8 @@ public:
 	//当前基准参数
 	FVector* TargetBaseLocation = &DefaultLocation;
 	FRotator* TargetBaseRotation = &DefaultRotation;
+	float DefaultBaseInterpolationRate = 5.f;
+	float CurrentBaseInterpolationRate = DefaultBaseInterpolationRate;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//结算
@@ -90,8 +93,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMax = 15;
 	void UpdateSway();
 	// ADS相关
-	bool isAiming = false;
+	bool ToADS = false;
+	bool PlayingADSAnimation = false;
+	bool IsAiming = false;
+	FVector CurrentADSOffset = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS();
 	FTransform SightRelativeTransform;
+	float CurrentADSTime = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 50;
 };

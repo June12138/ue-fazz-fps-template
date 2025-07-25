@@ -31,9 +31,11 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComp
 	if (WeaponRoot && CameraRoot && Sight) {
 		DefaultLocation = WeaponRoot->GetRelativeLocation();
 		DefaultRotation = WeaponRoot->GetRelativeRotation();
+		//设置ADS基准位置
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
-		UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
-		UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
+		AimLocation = DefaultLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
+		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
+		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
@@ -77,7 +79,31 @@ void UWeaponAnimComponent_CPP::SetInput(FVector Vector, FRotator Rotator)
 void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (!ShouldPlayAnimation) return;
 	ElapsedTime += DeltaTime;
+	//ADS处理
+	if (PlayingADSAnimation && ADSCurve) {
+		FVector Offset = -SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
+		if (ToADS) {
+			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
+			float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
+			CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
+			if (CurrentADSTime == ADSTime)
+			{
+				PlayingADSAnimation = false;
+				IsAiming = true;
+			}
+		}
+		else {
+			CurrentADSTime = FMath::Clamp(CurrentADSTime - DeltaTime, 0.f, ADSTime);
+			float alpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
+			CurrentADSOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), Offset, alpha);
+			if (CurrentADSTime == 0.f)
+			{
+				PlayingADSAnimation = false;
+			}
+		}
+	}
 	//武器后坐处理
 	FVector RecoilResult = FVector::ZeroVector;
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
@@ -104,9 +130,10 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 
 	// 合并结果
-	Result = *TargetBaseLocation + RecoilResult + CurrentBobResult;
+	FVector TotalOffset = RecoilResult + CurrentBobResult + CurrentADSOffset;
+	Result = *TargetBaseLocation + TotalOffset;
 	RotationResult = FRotator(TargetBaseRotation->Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
-
+	// 如果正在ADS，保持准星锁定到摄像头前方
 	// 应用到武器
 	if (WeaponRoot)
 	{
@@ -146,12 +173,13 @@ void UWeaponAnimComponent_CPP::UpdateSway() {
 
 void UWeaponAnimComponent_CPP::StartADS()
 {
-	*TargetBaseLocation = DefaultLocation - SightRelativeTransform.GetLocation();
-	isAiming = true;
+	ToADS = true;
+	PlayingADSAnimation = true;
 }
 
 void UWeaponAnimComponent_CPP::EndADS()
 {
-	*TargetBaseLocation = DefaultLocation + SightRelativeTransform.GetLocation();
-	isAiming = false;
+	ToADS = false;
+	IsAiming = false;
+	PlayingADSAnimation = true;
 }
