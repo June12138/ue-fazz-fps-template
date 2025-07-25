@@ -27,8 +27,8 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, UCameraCom
 	CameraRoot = CameraRootToSet;
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot) {
-		StartLocation = WeaponRoot->GetRelativeLocation();
-		StartRotation = WeaponRoot->GetRelativeRotation();
+		DefaultLocation = WeaponRoot->GetRelativeLocation();
+		DefaultRotation = WeaponRoot->GetRelativeRotation();
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponRoot is null"));
@@ -37,42 +37,27 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, UCameraCom
 
 void UWeaponAnimComponent_CPP::UpdateBob()
 {
-	float MoveSize = InputVector.Size();
-	float TargetFrequencyMultiplier;
-	float TargetLongitudeZ;
-	float TargetLongitudeY;
-	float TargetPitch;
-	float TargetYaw;
-	float TargetNoise;
 	// 根据移动状态设置参数
+	float multiplier = 1.f;
+	float MoveSize = InputVector.Size();
 	if (MoveSize > 0.1f)
 	{
-		TargetFrequencyMultiplier = WalkBob.BobFrequencyMultiplier* MoveSize;
-		TargetLongitudeZ = WalkBob.BobLongitudeZ * MoveSize;
-		TargetLongitudeY = WalkBob.BobLongitudeY * MoveSize;
-		TargetPitch = WalkBob.BobPitch * MoveSize;
-        TargetYaw = WalkBob.BobYaw * MoveSize;
-		TargetNoise = WalkBob.BobNoise * MoveSize;
+		multiplier = MoveSize;
+		CurrentBob = &WalkBob;
 	}
 	else
 	{
-		TargetFrequencyMultiplier = IdleBob.BobFrequencyMultiplier;
-		TargetLongitudeZ = IdleBob.BobLongitudeZ;
-		TargetLongitudeY = IdleBob.BobLongitudeY;
-		TargetPitch = IdleBob.BobPitch;
-		TargetYaw = IdleBob.BobYaw;
-		TargetNoise = IdleBob.BobNoise;
+		CurrentBob = &IdleBob;
 	}
-
 	// 计算目标 Bob 位移
-	float HorizontalMultiplier = FMath::Sin(ElapsedTime * TargetFrequencyMultiplier * 2 + PI * 0.25);
-	float VerticalMultiplier = FMath::Sin(ElapsedTime * TargetFrequencyMultiplier);
-	float Noise = FMath::PerlinNoise1D(ElapsedTime) * TargetNoise;
+	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25);
+	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier);
+	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob->BobNoise;
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
-	float Z = HorizontalMultiplier * TargetLongitudeZ + Noise;
-	float Y = VerticalMultiplier * TargetLongitudeY + Noise;
-	float Pitch = VerticalMultiplier * TargetPitch + Noise;
-    float Yaw = HorizontalMultiplier * TargetYaw + Noise;
+	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
+	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
+	float Pitch = VerticalMultiplier * CurrentBob->BobPitch + Noise;
+    float Yaw = HorizontalMultiplier * CurrentBob->BobYaw + Noise;
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(0.f, Yaw, Pitch);
 }
@@ -114,8 +99,8 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 
 	// 合并结果
-	Result = StartLocation + RecoilResult + CurrentBobResult;
-	RotationResult = FRotator(StartRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
+	Result = *TargetBaseLocation + RecoilResult + CurrentBobResult;
+	RotationResult = FRotator(TargetBaseRotation->Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 
 	// 应用到武器
 	if (WeaponRoot)
@@ -152,4 +137,14 @@ void UWeaponAnimComponent_CPP::UpdateSway() {
 	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
 	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier * -1, -SwayPitchMax/2, SwayPitchMax/2);
 	TargetSway = FRotator(0.f, Yaw, Pitch);
+}
+
+void UWeaponAnimComponent_CPP::StartADS()
+{
+	isAiming = true;
+}
+
+void UWeaponAnimComponent_CPP::EndADS()
+{
+	isAiming = false;
 }

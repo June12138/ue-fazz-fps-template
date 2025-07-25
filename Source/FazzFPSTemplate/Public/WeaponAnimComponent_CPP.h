@@ -32,9 +32,17 @@ public:
 	UFUNCTION(BlueprintCallable) void SetInput(FVector Vector, FRotator Rotator);
 	FVector InputVector;
 	FRotator InputRotator;
-	//
-	FVector StartLocation;
-	FRotator StartRotation;
+	//基准
+	FVector DefaultLocation;
+	FRotator DefaultRotation;
+	FVector AimLocation;
+	FRotator AimRotation;
+	//当前基准参数
+	FVector* TargetBaseLocation = &DefaultLocation;
+	FRotator* TargetBaseRotation = &DefaultRotation;
+	FVector CurrentBaseLocation;
+	FRotator CurrentBaseRotation;
+	//结算
 	FVector Result;
 	FRotator RotationResult;
 	FVector JitterVector(FVector Input, FVector Jitter);
@@ -70,6 +78,7 @@ public:
 	//Idle晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
+	FWeaponBobStruct* CurrentBob = &IdleBob;
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
@@ -79,4 +88,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMultiplier = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMax = 15;
 	void UpdateSway();
+	// ADS相关
+	bool isAiming = false;
+	UFUNCTION(BlueprintCallable) void StartADS();
+	UFUNCTION(BlueprintCallable) void EndADS();
 };
