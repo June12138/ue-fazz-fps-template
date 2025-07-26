@@ -44,34 +44,6 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComp
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
 	}
 }
-
-void UWeaponAnimComponent_CPP::UpdateBob()
-{
-	// 根据移动状态设置参数
-	float multiplier = 1.f;
-	float MoveSize = InputVector.Size();
-	if (MoveSize > 0.1f)
-	{
-		multiplier = MoveSize;
-		CurrentBob = &WalkBob;
-	}
-	else
-	{
-		CurrentBob = &IdleBob;
-	}
-	// 计算目标 Bob 位移
-	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25);
-	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier);
-	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob->BobNoise;
-	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
-	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
-	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
-	float Pitch = VerticalMultiplier * CurrentBob->BobPitch + Noise;
-    float Yaw = HorizontalMultiplier * CurrentBob->BobYaw + Noise;
-	BobResult = FVector(0.f, Y, Z);
-	BobResultRot = FRotator(Pitch, Yaw, 0.f);
-}
-
 void UWeaponAnimComponent_CPP::SetInput(FVector Vector, FRotator Rotator)
 {
 	InputVector = Vector;
@@ -84,6 +56,9 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!ShouldPlayAnimation) return;
 	ElapsedTime += DeltaTime;
+	// 更新基准位置和旋转
+	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
+	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
 	//武器后坐处理
 	FVector RecoilResult = FVector::ZeroVector;
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
@@ -144,17 +119,11 @@ FVector UWeaponAnimComponent_CPP::JitterVector(FVector Input, FVector Jitter) {
 	return FVector(X, Y, Z);
 }
 
-void UWeaponAnimComponent_CPP::UpdateSway() {
-	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
-	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier, -SwayPitchMax/2, SwayPitchMax/2);
-	TargetSway = FRotator(Pitch, Yaw, 0.f);
-}
-
 void UWeaponAnimComponent_CPP::StartADS()
 {
 	ToADS = true;
 	PlayingADSAnimation = true;
-	TargetBaseRotation = &AimRotation;
+	TargetBaseRotation = &ADSBaseRotation;
 }
 
 void UWeaponAnimComponent_CPP::EndADS()
@@ -162,10 +131,46 @@ void UWeaponAnimComponent_CPP::EndADS()
 	ToADS = false;
 	IsAiming = false;
 	PlayingADSAnimation = true;
+	TargetBaseRotation = &DefaultRotation;
 }
-
+void UWeaponAnimComponent_CPP::UpdateSway() {
+	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier, -SwayPitchMax/2, SwayPitchMax/2);
+	TargetSway = FRotator(Pitch, Yaw, 0.f);
+}
+void UWeaponAnimComponent_CPP::UpdateBob()
+{
+	// 根据移动状态设置参数
+	float multiplier = 1.f;
+	float MoveSize = InputVector.Size();
+	if (MoveSize > 0.01f)
+	{
+		multiplier = MoveSize;
+		CurrentBob = &WalkBob;
+		if (IsAiming || PlayingADSAnimation) {
+			CurrentBob = &WalkBobADS;
+		}
+	}else{
+		CurrentBob = &IdleBob;
+		if (IsAiming || PlayingADSAnimation) {
+			CurrentBob = &IdleBobADS;
+		}
+	}
+	// 计算目标 Bob 位移
+	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
+	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier) * multiplier;
+	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob->BobNoise * multiplier;
+	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
+	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
+	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
+	float Pitch = VerticalMultiplier * CurrentBob->BobPitch + Noise;
+    float Yaw = HorizontalMultiplier * CurrentBob->BobYaw + Noise;
+	BobResult = FVector(0.f, Y, Z);
+	BobResultRot = FRotator(Pitch, Yaw, 0.f);
+}
 void UWeaponAnimComponent_CPP::ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
+	// 根据曲线和时间计算ADS动画的插值
 	if (PlayingADSAnimation && ADSCurve) {
 		if (ToADS) {
 			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
@@ -184,7 +189,8 @@ void UWeaponAnimComponent_CPP::ADSCorrection(FVector* TotalOffset, FRotator Tota
 		}
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
-	FVector PredictedSightLocation = CurrentBaseLocation + *TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
+	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
+	FVector PredictedSightLocation = CurrentBaseLocation + *TotalOffset + TargetBaseRotation->RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
 	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
 	*TotalOffset += -1 * PredictedDeviation * ADSAlpha;
 }

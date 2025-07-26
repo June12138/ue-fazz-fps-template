@@ -39,12 +39,11 @@ public:
 	FVector DefaultLocation;
 	FRotator DefaultRotation;
 	FVector AimLocation;
-	FRotator AimRotation = FRotator(0.f, 0.f, 0.f);
 	//当前基准参数
 	FVector* TargetBaseLocation = &DefaultLocation;
 	FRotator* TargetBaseRotation = &DefaultRotation;
-	float DefaultBaseInterpolationRate = 5.f;
-	float CurrentBaseInterpolationRate = DefaultBaseInterpolationRate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//结算
@@ -60,8 +59,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") FVector RecoilOffset = FVector(-8.f, 2.f, 0.f); //后座终止位置偏移
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilOffsetJitter = FVector(3.f,3.f,3.f); //后座随机偏移 
 		//后坐力旋转偏移
-	FVector CurrentRecoilRotationOffset;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffset = FVector(0.f,0.f,-3.f); //后座终止旋转偏移
+		FVector CurrentRecoilRotationOffset;
+		UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffset = FVector(0.f,0.f,-3.f); //后座终止旋转偏移
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffsetJitter = FVector(2.f,2.f,2.f);//后座旋转随机偏移 
 	void UpdateRecoilEnd();
 	UFUNCTION(BlueprintCallable)
@@ -78,12 +77,17 @@ public:
 	FRotator BobResultRot;
 	void UpdateBob();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 5;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 5;
 	//Idle晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
+	//ADS Idle晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
-	FWeaponBobStruct* CurrentBob = &IdleBob;
-	// Sway相关
+		//Walk晃动
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 1.f, 0.f, 3, 0, 0.25};
+		//ADS Walk晃动
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{3, 3, 3, 3, 3, 0.35};
+		FWeaponBobStruct* CurrentBob = &IdleBob;
+		// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
@@ -97,17 +101,16 @@ public:
 	bool PlayingADSAnimation = false;
 	bool IsAiming = false;
 	FVector CurrentADSOffset = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(0.f, 0.f, 0.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS();
 	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.4;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 50;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 42;
 	// 准星位置修正
 	void ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_ToADS = 50;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightCorrectionSpeed_FromADS = 5;
 	float ADSAlpha = 0.f;
 };
