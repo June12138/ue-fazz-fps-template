@@ -110,9 +110,9 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// 合并结果
 	FVector TotalOffset = RecoilResult + CurrentBobResult;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
-	//ADS处理：务必最后结算！！！
-	FVector ADSLocation = GetADSLocation(TotalOffset, TotalRotationOffset, DeltaTime);
-	Result = CurrentBaseLocation + TotalOffset + ADSLocation;
+	//ADS处理
+	ADSCorrection(&TotalOffset, TotalRotationOffset, DeltaTime);
+	Result = CurrentBaseLocation + TotalOffset;
 	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	if (WeaponRoot)
 	{
@@ -164,7 +164,7 @@ void UWeaponAnimComponent_CPP::EndADS()
 	PlayingADSAnimation = true;
 }
 
-FVector UWeaponAnimComponent_CPP::GetADSLocation(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
+void UWeaponAnimComponent_CPP::ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
 	if (PlayingADSAnimation && ADSCurve) {
 		if (ToADS) {
@@ -184,8 +184,7 @@ FVector UWeaponAnimComponent_CPP::GetADSLocation(FVector TotalOffset, FRotator T
 		}
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
-	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
+	FVector PredictedSightLocation = CurrentBaseLocation + *TotalOffset + TotalRotationOffset.RotateVector(Sight_RootOffset);
 	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
-	FVector SightCorrection = -1 * PredictedDeviation;
-	return SightCorrection * ADSAlpha;
+	*TotalOffset += -1 * PredictedDeviation * ADSAlpha;
 }
