@@ -60,14 +60,13 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
 	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
 	//武器后坐处理
-	FVector RecoilResult = FVector::ZeroVector;
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
 	if (IsPlayingRecoilAnim && RecoilCurve)
 	{
 		CurrentRecoilTime = FMath::Clamp(CurrentRecoilTime + DeltaTime, 0.f, RecoilAnimTime);
 		float alpha = RecoilCurve->GetFloatValue(CurrentRecoilTime / RecoilAnimTime);
-		RecoilResult = FMath::Lerp(FVector(0.f, 0.f, 0.f), CurrentRecoilOffset, alpha);
-		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), CurrentRecoilRotationOffset, alpha);
+		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
+		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
 		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
@@ -83,7 +82,7 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 	// 合并结果
-	FVector TotalOffset = RecoilResult + CurrentBobResult;
+	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	//ADS处理
 	ADSCorrection(&TotalOffset, TotalRotationOffset, DeltaTime);
@@ -102,8 +101,8 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UWeaponAnimComponent_CPP::UpdateRecoilEnd()
 {
-	CurrentRecoilOffset = JitterVector(RecoilOffset, RecoilOffsetJitter);
-	CurrentRecoilRotationOffset = JitterVector(RecoilRotationOffset, RecoilRotationOffsetJitter);
+	RecoilTargetOffset = JitterVector(CurrentRecoilStruct->RecoilOffset, CurrentRecoilStruct->RecoilOffsetJitter);
+	RecoilRotationTargetOffset = JitterVector(CurrentRecoilStruct->RecoilRotationOffset, CurrentRecoilStruct->RecoilRotationOffsetJitter);
 }
 
 void UWeaponAnimComponent_CPP::StartRecoilAnim()
@@ -125,6 +124,8 @@ void UWeaponAnimComponent_CPP::StartADS()
 	ToADS = true;
 	PlayingADSAnimation = true;
 	TargetBaseRotation = &ADSBaseRotation;
+	CurrentRecoilStruct = &ADSRecoilStruct;
+	CurrentSwayStruct = &ADSSway;
 }
 
 void UWeaponAnimComponent_CPP::EndADS()
@@ -133,10 +134,12 @@ void UWeaponAnimComponent_CPP::EndADS()
 	IsAiming = false;
 	PlayingADSAnimation = true;
 	TargetBaseRotation = &DefaultRotation;
+	CurrentRecoilStruct = &DefaultRecoilStruct;
+	CurrentSwayStruct = &DefaultSway;
 }
 void UWeaponAnimComponent_CPP::UpdateSway() {
-	float Yaw = FMath::Clamp(InputRotator.Yaw * SwayYawMultiplier * -1, -SwayYawMax/2, SwayYawMax/2);
-	float Pitch = FMath::Clamp(InputRotator.Pitch * SwayPitchMultiplier, -SwayPitchMax/2, SwayPitchMax/2);
+	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax/2, CurrentSwayStruct->SwayYawMax/2);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct->SwayPitchMultiplier, -CurrentSwayStruct->SwayPitchMax/2, CurrentSwayStruct->SwayPitchMax/2);
 	TargetSway = FRotator(Pitch, Yaw, 0.f);
 }
 void UWeaponAnimComponent_CPP::UpdateBob()
@@ -192,6 +195,6 @@ void UWeaponAnimComponent_CPP::ADSCorrection(FVector* TotalOffset, FRotator Tota
 	}
 	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
 	FVector PredictedSightLocation = CurrentBaseLocation + *TotalOffset + TargetBaseRotation->RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
-	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f);
+	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset;
 	*TotalOffset += -1 * PredictedDeviation * ADSAlpha;
 }

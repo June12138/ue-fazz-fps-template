@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "Camera/CameraComponent.h"
 #include "WeaponBobStruct.h"
+#include "WeaponSwayStruct.h"
+#include "WeaponRecoilStruct.h"
 #include "WeaponAnimComponent_CPP.generated.h"
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -55,22 +57,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	float CurrentRecoilTime = 0.0f;
 		//后坐力位置偏移
-	FVector CurrentRecoilOffset;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") FVector RecoilOffset = FVector(-8.f, 2.f, 0.f); //后座终止位置偏移
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilOffsetJitter = FVector(3.f,3.f,3.f); //后座随机偏移 
+	FVector RecoilTargetOffset;
+	UPROPERTY(BlueprintReadWrite) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
 		//后坐力旋转偏移
-		FVector CurrentRecoilRotationOffset;
-		UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffset = FVector(0.f,0.f,-3.f); //后座终止旋转偏移
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FVector RecoilRotationOffsetJitter = FVector(2.f,2.f,2.f);//后座旋转随机偏移 
+	FVector RecoilRotationTargetOffset;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
+	FWeaponRecoilStruct DefaultRecoilStruct = FWeaponRecoilStruct{
+		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
+		FVector(1.f,1.f,0.5), //后座随机偏移
+		FVector(1.f,0.f,0.f), //后座终止旋转偏移
+		FVector(1.f,2.f,1.f) //后座随机旋转偏移
+	}; //后坐力结构体
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
+	FWeaponRecoilStruct ADSRecoilStruct = FWeaponRecoilStruct{
+		FVector(-0.5, 0.f, 0.3), //后座终止位置偏移
+		FVector(0.25,0.05,0.f), //后座随机偏移
+		FVector(0.3,0.0,0.0), //后座终止旋转偏移
+		FVector(0.2,0.2,10.f) //后座随机旋转偏移
+	}; //后坐力结构体
+	FWeaponRecoilStruct* CurrentRecoilStruct = &DefaultRecoilStruct;
 	void UpdateRecoilEnd();
 	UFUNCTION(BlueprintCallable)
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
 	//武器晃动相关
-	float BobFrequencyMultiplierCurrent = 0.75;
-	float BobLongitudeCurrentZ = 1.f;
-	float BobLongitudeCurrentY = 0.f;
-	float BobNoiseCurrent = 0.5;
 	FVector CurrentBobResult;
 	FVector BobResult;
 	FRotator CurrentBobResultRot;
@@ -83,18 +93,19 @@ public:
 		//Walk晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
 		//ADS Idle
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.25};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15};
 		//ADS Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{3, 0.f, 0.f, 0.07, 0.07, 0.35};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.1, 0.15};
 		FWeaponBobStruct* CurrentBob = &IdleBob;
-		// Sway相关
+	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayYawMultiplier = 5;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayYawMax = 15;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMultiplier = 5;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayPitchMax = 15;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
+		// 默认姿态下sway
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway")FWeaponSwayStruct DefaultSway = FWeaponSwayStruct{5, 15, 5, 15};
+	FWeaponSwayStruct* CurrentSwayStruct = &DefaultSway;
+		// 开镜状态下sway
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway")FWeaponSwayStruct ADSSway = FWeaponSwayStruct{3, 0.3, 3, 0.3};
 	void UpdateSway();
 	// ADS相关
 	bool ToADS = false;
