@@ -109,6 +109,7 @@ void UWeaponAnimComponent_CPP::UpdateRecoilEnd()
 void UWeaponAnimComponent_CPP::StartRecoilAnim()
 {
 	UpdateRecoilEnd();
+	CurrentRecoilTime = 0.f;
 	IsPlayingRecoilAnim = true;
 }
 
@@ -163,8 +164,8 @@ void UWeaponAnimComponent_CPP::UpdateBob()
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
 	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
 	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
-	float Pitch = VerticalMultiplier * CurrentBob->BobPitch + Noise;
-    float Yaw = HorizontalMultiplier * CurrentBob->BobYaw + Noise;
+    float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw + Noise;
+	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier)) * CurrentBob->BobPitch + Noise;
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }

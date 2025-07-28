@@ -78,14 +78,14 @@ public:
 	void UpdateBob();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 5;
-	//Idle晃动
+		//Idle晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
-	//ADS Idle晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
 		//Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 1.f, 0.f, 3, 0, 0.25};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
+		//ADS Idle
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.25};
 		//ADS Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{3, 3, 3, 3, 3, 0.35};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{3, 0.f, 0.f, 0.07, 0.07, 0.35};
 		FWeaponBobStruct* CurrentBob = &IdleBob;
 		// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
@@ -101,7 +101,7 @@ public:
 	bool PlayingADSAnimation = false;
 	bool IsAiming = false;
 	FVector CurrentADSOffset = FVector::ZeroVector;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(0.f, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(-0.25, 0.f, 0.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS();
