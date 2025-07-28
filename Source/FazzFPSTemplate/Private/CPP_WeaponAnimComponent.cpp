@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "WeaponAnimComponent_CPP.h"
+#include "CPP_WeaponAnimComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Math/UnrealMathUtility.h"
 
 // Sets default values for this component's properties
-UWeaponAnimComponent_CPP::UWeaponAnimComponent_CPP()
+UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	//bAutoActivate = true;
@@ -16,13 +16,13 @@ UWeaponAnimComponent_CPP::UWeaponAnimComponent_CPP()
 
 
 // Called when the game starts
-void UWeaponAnimComponent_CPP::BeginPlay()
+void UCPP_WeaponAnimComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	// ...
 }
 
-void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet)
+void UCPP_WeaponAnimComponent::Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet)
 {
 	WeaponRoot = WeaponRootToSet;
 	Sight = SightToSet;
@@ -44,14 +44,14 @@ void UWeaponAnimComponent_CPP::Init(USceneComponent* WeaponRootToSet, USceneComp
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
 	}
 }
-void UWeaponAnimComponent_CPP::SetInput(FVector Vector, FRotator Rotator)
+void UCPP_WeaponAnimComponent::SetInput(FVector Vector, FRotator Rotator)
 {
 	InputVector = Vector;
 	InputRotator = Rotator;
 }
 
 // Called every frame
-void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!ShouldPlayAnimation) return;
@@ -99,27 +99,27 @@ void UWeaponAnimComponent_CPP::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 }
 
-void UWeaponAnimComponent_CPP::UpdateRecoilEnd()
+void UCPP_WeaponAnimComponent::UpdateRecoilEnd()
 {
 	RecoilTargetOffset = JitterVector(CurrentRecoilStruct->RecoilOffset, CurrentRecoilStruct->RecoilOffsetJitter);
 	RecoilRotationTargetOffset = JitterVector(CurrentRecoilStruct->RecoilRotationOffset, CurrentRecoilStruct->RecoilRotationOffsetJitter);
 }
 
-void UWeaponAnimComponent_CPP::StartRecoilAnim()
+void UCPP_WeaponAnimComponent::StartRecoilAnim()
 {
 	UpdateRecoilEnd();
 	CurrentRecoilTime = 0.f;
 	IsPlayingRecoilAnim = true;
 }
 
-FVector UWeaponAnimComponent_CPP::JitterVector(FVector Input, FVector Jitter) {
+FVector UCPP_WeaponAnimComponent::JitterVector(FVector Input, FVector Jitter) {
 	float X = FMath::RandRange(Input.X - Jitter.X / 2, Input.X + Jitter.X / 2);
 	float Y = FMath::RandRange(Input.Y - Jitter.Y / 2, Input.Y + Jitter.Y / 2);
 	float Z = FMath::RandRange(Input.Z - Jitter.Z / 2, Input.Z + Jitter.Z / 2);
 	return FVector(X, Y, Z);
 }
 
-void UWeaponAnimComponent_CPP::StartADS()
+void UCPP_WeaponAnimComponent::StartADS()
 {
 	ToADS = true;
 	PlayingADSAnimation = true;
@@ -128,7 +128,7 @@ void UWeaponAnimComponent_CPP::StartADS()
 	CurrentSwayStruct = &ADSSway;
 }
 
-void UWeaponAnimComponent_CPP::EndADS()
+void UCPP_WeaponAnimComponent::EndADS()
 {
 	ToADS = false;
 	IsAiming = false;
@@ -137,12 +137,12 @@ void UWeaponAnimComponent_CPP::EndADS()
 	CurrentRecoilStruct = &DefaultRecoilStruct;
 	CurrentSwayStruct = &DefaultSway;
 }
-void UWeaponAnimComponent_CPP::UpdateSway() {
+void UCPP_WeaponAnimComponent::UpdateSway() {
 	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax/2, CurrentSwayStruct->SwayYawMax/2);
 	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct->SwayPitchMultiplier, -CurrentSwayStruct->SwayPitchMax/2, CurrentSwayStruct->SwayPitchMax/2);
 	TargetSway = FRotator(Pitch, Yaw, 0.f);
 }
-void UWeaponAnimComponent_CPP::UpdateBob()
+void UCPP_WeaponAnimComponent::UpdateBob()
 {
 	// 根据移动状态设置参数
 	float multiplier = 1.f;
@@ -172,7 +172,7 @@ void UWeaponAnimComponent_CPP::UpdateBob()
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }
-void UWeaponAnimComponent_CPP::ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
+void UCPP_WeaponAnimComponent::ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
 	// 根据曲线和时间计算ADS动画的插值
 	if (PlayingADSAnimation && ADSCurve) {

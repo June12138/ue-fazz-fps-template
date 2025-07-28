@@ -9,16 +9,16 @@
 #include "WeaponBobStruct.h"
 #include "WeaponSwayStruct.h"
 #include "WeaponRecoilStruct.h"
-#include "WeaponAnimComponent_CPP.generated.h"
+#include "CPP_WeaponAnimComponent.generated.h"
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class FAZZFPSTEMPLATE_API UWeaponAnimComponent_CPP : public UActorComponent
+class FAZZFPSTEMPLATE_API UCPP_WeaponAnimComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
 	// Sets default values for this component's properties
-	UWeaponAnimComponent_CPP();
+	UCPP_WeaponAnimComponent();
 
 protected:
 	// Called when the game starts
@@ -95,7 +95,7 @@ public:
 		//ADS Idle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15};
 		//ADS Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.1, 0.15};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15};
 		FWeaponBobStruct* CurrentBob = &IdleBob;
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
@@ -119,7 +119,7 @@ public:
 	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.4;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 42;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 41;
 	// 准星位置修正
 	void ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
