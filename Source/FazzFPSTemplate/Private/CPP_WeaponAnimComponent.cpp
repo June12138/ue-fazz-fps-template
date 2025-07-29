@@ -214,6 +214,7 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 		case EStanceState::Default:
 			TargetBaseRotation = &DefaultBaseRotation;
 			TargetBaseLocation = &DefaultBaseLocation;
+			CurrentRecoilStruct = &DefaultRecoilStruct;
 			if (MoveSize > 0.1f) {
 				CurrentBob = &WalkBob;
 			}	else {
@@ -240,6 +241,7 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 		CurrentSwayStruct = &ADSSway;
 		TargetBaseRotation = &ADSBaseRotation;
 		TargetBaseLocation = &DefaultBaseLocation;
+		CurrentRecoilStruct = &ADSRecoilStruct;
 		if (MoveSize > 0.1f){
 			CurrentBob = &WalkBobADS;
 		}else{

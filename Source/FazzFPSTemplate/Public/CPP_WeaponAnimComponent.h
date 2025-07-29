@@ -55,15 +55,15 @@ public:
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
 		// 下蹲基准参数
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(0.f, 0.f, -5);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(0.f, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(25, 3, -10);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(-10, 0.f, 0.f);
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
 		//当前基准参数
 	FVector* TargetBaseLocation = &DefaultBaseLocation;
 	FRotator* TargetBaseRotation = &DefaultBaseRotation;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 10;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//结算
@@ -76,7 +76,7 @@ public:
 	float CurrentRecoilTime = 0.0f;
 		//后坐力位置偏移
 	FVector RecoilTargetOffset;
-	UPROPERTY(BlueprintReadWrite) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
+	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
 		//后坐力旋转偏移
 	FVector RecoilRotationTargetOffset;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
@@ -146,5 +146,5 @@ public:
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
 	float ADSAlpha = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 5.f; //ADS插值速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 10; //ADS插值速率
 };
