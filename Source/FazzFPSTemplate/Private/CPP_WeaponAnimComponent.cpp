@@ -52,12 +52,22 @@ void UCPP_WeaponAnimComponent::SetInput(FVector Vector, FRotator Rotator)
 
 void UCPP_WeaponAnimComponent::StartSprint()
 {
-	IsSprinting = true;
+	CurrentStance = EStanceState::Sprint;
 }
 
 void UCPP_WeaponAnimComponent::EndSprint()
 {
-	IsSprinting = false;
+	CurrentStance = EStanceState::Default;
+}
+
+void UCPP_WeaponAnimComponent::StartCrouch()
+{
+	CurrentStance = EStanceState::Crouch;
+}
+
+void UCPP_WeaponAnimComponent::EndCrouch()
+{
+	CurrentStance = EStanceState::Default;
 }
 
 // Called every frame
@@ -198,45 +208,42 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 }
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {
-	//Bob
 	float MoveSize = InputVector.Size();
-	if (IsSprinting) {
-		CurrentBob = &RunBob;
-	}else if (MoveSize > 0.01f)
+	switch (CurrentStance)
 	{
-		CurrentBob = &WalkBob;
-		if (IsAiming || PlayingADSAnimation) {
-			CurrentBob = &WalkBobADS;
-		}
-	}else{
-		CurrentBob = &IdleBob;
-		if (IsAiming || PlayingADSAnimation) {
-			CurrentBob = &IdleBobADS;
-		}
+		case EStanceState::Default:
+			TargetBaseRotation = &DefaultBaseRotation;
+			TargetBaseLocation = &DefaultBaseLocation;
+			if (MoveSize > 0.1f) {
+				CurrentBob = &WalkBob;
+			}	else {
+				CurrentBob = &IdleBob;
+			}
+			break;
+		case EStanceState::Sprint:
+			CurrentBob = &RunBob;
+			TargetBaseLocation = &SprintBaseLocation;
+			TargetBaseRotation = &SprintBaseRotation;
+			break;
+		case EStanceState::Crouch:
+			TargetBaseLocation = &CrouchBaseLocation;
+			TargetBaseRotation = &CrouchBaseRotation;
+			if (MoveSize > 0.1f) {
+				CurrentBob = &WalkBob;
+			}	else {
+				CurrentBob = &IdleBob;
+			}
+			break;
 	}
-	//Sway
+	//ADS
 	if (IsAiming || PlayingADSAnimation) {
 		CurrentSwayStruct = &ADSSway;
-	}
-	else {
-		CurrentSwayStruct = &DefaultSway;
-	}
-	//Recoil
-	if (IsAiming || PlayingADSAnimation) {
-		CurrentRecoilStruct = &ADSRecoilStruct;
-	}
-	else {
-		CurrentRecoilStruct = &DefaultRecoilStruct;
-	}
-	//Base
-	if (IsAiming || PlayingADSAnimation) {
 		TargetBaseRotation = &ADSBaseRotation;
-	}else if (IsSprinting) {
-		TargetBaseLocation = &SprintBaseLocation;
-		TargetBaseRotation = &SprintBaseRotation;
-	}
-	else {
 		TargetBaseLocation = &DefaultBaseLocation;
-		TargetBaseRotation = &DefaultBaseRotation;
+		if (MoveSize > 0.1f){
+			CurrentBob = &WalkBobADS;
+		}else{
+			CurrentBob = &IdleBobADS;
+		}
 	}
 }

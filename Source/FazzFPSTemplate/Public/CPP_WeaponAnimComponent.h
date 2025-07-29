@@ -39,6 +39,13 @@ public:
 	FVector InputVector;
 	FRotator InputRotator;
 	//基准
+	enum class EStanceState
+	{
+		Default,
+		Sprint,
+		Crouch
+	};
+	EStanceState CurrentStance = EStanceState::Default;
 	FVector DefaultBaseLocation;
 	FRotator DefaultBaseRotation;
 	FVector ADSBaseLocation;
@@ -47,7 +54,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(-20, -55, 0.f);
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
-	bool IsSprinting = false;
+		// 下蹲基准参数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(0.f, 0.f, -5);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(0.f, 0.f, 0.f);
+	UFUNCTION(BlueprintCallable) void StartCrouch();
+	UFUNCTION(BlueprintCallable) void EndCrouch();
 		//当前基准参数
 	FVector* TargetBaseLocation = &DefaultBaseLocation;
 	FRotator* TargetBaseRotation = &DefaultBaseRotation;
