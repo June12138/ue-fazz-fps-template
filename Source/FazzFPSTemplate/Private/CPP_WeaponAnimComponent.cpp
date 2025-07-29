@@ -209,6 +209,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {
 	float MoveSize = InputVector.Size();
+	CurrentSwayStruct = &DefaultSway;
 	switch (CurrentStance)
 	{
 		case EStanceState::Default:
