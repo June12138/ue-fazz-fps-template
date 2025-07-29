@@ -29,13 +29,13 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent* WeaponRootToSet, USceneComp
 	CameraRoot = CameraRootToSet;
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot && CameraRoot && Sight) {
-		DefaultLocation = WeaponRoot->GetRelativeLocation();
-		CurrentBaseLocation = DefaultLocation;
-		DefaultRotation = WeaponRoot->GetRelativeRotation();
-		CurrentBaseRotation = DefaultRotation;
+		DefaultBaseLocation = WeaponRoot->GetRelativeLocation();
+		CurrentBaseLocation = DefaultBaseLocation;
+		DefaultBaseRotation = WeaponRoot->GetRelativeRotation();
+		CurrentBaseRotation = DefaultBaseRotation;
 		//设置ADS基准位置
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
-		AimLocation = DefaultLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
+		ADSBaseLocation = DefaultBaseLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
 		Sight_RootOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
 		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
 		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
@@ -52,28 +52,11 @@ void UCPP_WeaponAnimComponent::SetInput(FVector Vector, FRotator Rotator)
 
 void UCPP_WeaponAnimComponent::StartSprint()
 {
-	TargetBaseLocation = &SprintBaseLocation;
-	TargetBaseRotation = &SprintBaseRotation;
-	//设置当前后坐力结构体
-	CurrentRecoilStruct = &DefaultRecoilStruct;
-	//设置当前Sway结构体
-	CurrentSwayStruct = &DefaultSway;
-	//设置当前Bob结构体
-	// TODO: 增加一个Sprint Bob结构体
-	CurrentBob = &RunBob;
 	IsSprinting = true;
 }
 
 void UCPP_WeaponAnimComponent::EndSprint()
 {
-	TargetBaseLocation = &DefaultLocation;
-	TargetBaseRotation = &DefaultRotation;
-	//设置当前后坐力结构体
-	CurrentRecoilStruct = &DefaultRecoilStruct;
-	//设置当前Sway结构体
-	CurrentSwayStruct = &DefaultSway;
-	//设置当前Bob结构体
-	CurrentBob = &IdleBob;
 	IsSprinting = false;
 }
 
@@ -82,6 +65,7 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!ShouldPlayAnimation) return;
+	UpdateSettings();
 	ElapsedTime += DeltaTime;
 	// 更新基准位置和旋转
 	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
@@ -112,12 +96,13 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	//ADS处理
-	ADSCorrection(&TotalOffset, TotalRotationOffset, DeltaTime);
+	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
+	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
 	Result = CurrentBaseLocation + TotalOffset;
 	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	if (WeaponRoot)
 	{
-		WeaponRoot->SetRelativeLocation(Result);
+		WeaponRoot->SetRelativeLocation(Result + CurrentADSCorrection);
 		WeaponRoot->SetRelativeRotation(RotationResult);
 	}
 	else
@@ -150,19 +135,14 @@ void UCPP_WeaponAnimComponent::StartADS()
 {
 	ToADS = true;
 	PlayingADSAnimation = true;
-	TargetBaseRotation = &ADSBaseRotation;
-	CurrentRecoilStruct = &ADSRecoilStruct;
-	CurrentSwayStruct = &ADSSway;
 }
 
-void UCPP_WeaponAnimComponent::EndADS()
+void UCPP_WeaponAnimComponent::EndADS(bool UseCurve)
 {
 	ToADS = false;
 	IsAiming = false;
 	PlayingADSAnimation = true;
-	TargetBaseRotation = &DefaultRotation;
-	CurrentRecoilStruct = &DefaultRecoilStruct;
-	CurrentSwayStruct = &DefaultSway;
+	if (!UseCurve) { CurrentADSTime = 0.f; }
 }
 void UCPP_WeaponAnimComponent::UpdateSway() {
 	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax/2, CurrentSwayStruct->SwayYawMax/2);
@@ -177,18 +157,6 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	if (MoveSize > 0.01f)
 	{
 		multiplier = MoveSize;
-		CurrentBob = &WalkBob;
-		if (IsAiming || PlayingADSAnimation) {
-			CurrentBob = &WalkBobADS;
-		}
-	}else{
-		CurrentBob = &IdleBob;
-		if (IsAiming || PlayingADSAnimation) {
-			CurrentBob = &IdleBobADS;
-		}
-	}
-	if (IsSprinting) {
-		CurrentBob = &RunBob;
 	}
 	// 计算目标 Bob 位移
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
@@ -202,7 +170,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }
-void UCPP_WeaponAnimComponent::ADSCorrection(FVector* TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
+void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
 	// 根据曲线和时间计算ADS动画的插值
 	if (PlayingADSAnimation && ADSCurve) {
@@ -224,7 +192,51 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector* TotalOffset, FRotator Tota
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
 	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
-	FVector PredictedSightLocation = CurrentBaseLocation + *TotalOffset + TargetBaseRotation->RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
+	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
 	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset;
-	*TotalOffset += -1 * PredictedDeviation * ADSAlpha;
+	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
+}
+void UCPP_WeaponAnimComponent::UpdateSettings()
+{
+	//Bob
+	float MoveSize = InputVector.Size();
+	if (IsSprinting) {
+		CurrentBob = &RunBob;
+	}else if (MoveSize > 0.01f)
+	{
+		CurrentBob = &WalkBob;
+		if (IsAiming || PlayingADSAnimation) {
+			CurrentBob = &WalkBobADS;
+		}
+	}else{
+		CurrentBob = &IdleBob;
+		if (IsAiming || PlayingADSAnimation) {
+			CurrentBob = &IdleBobADS;
+		}
+	}
+	//Sway
+	if (IsAiming || PlayingADSAnimation) {
+		CurrentSwayStruct = &ADSSway;
+	}
+	else {
+		CurrentSwayStruct = &DefaultSway;
+	}
+	//Recoil
+	if (IsAiming || PlayingADSAnimation) {
+		CurrentRecoilStruct = &ADSRecoilStruct;
+	}
+	else {
+		CurrentRecoilStruct = &DefaultRecoilStruct;
+	}
+	//Base
+	if (IsAiming || PlayingADSAnimation) {
+		TargetBaseRotation = &ADSBaseRotation;
+	}else if (IsSprinting) {
+		TargetBaseLocation = &SprintBaseLocation;
+		TargetBaseRotation = &SprintBaseRotation;
+	}
+	else {
+		TargetBaseLocation = &DefaultBaseLocation;
+		TargetBaseRotation = &DefaultBaseRotation;
+	}
 }
