@@ -41,7 +41,13 @@ public:
 	FVector DefaultLocation;
 	FRotator DefaultRotation;
 	FVector AimLocation;
-	//当前基准参数
+		// 奔跑基准参数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector SprintBaseLocation = FVector(0.f, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(0.f, 0.f, 0.f);
+	UFUNCTION(BlueprintCallable) void StartSprint();
+	UFUNCTION(BlueprintCallable) void EndSprint();
+	bool IsSprinting = false;
+		//当前基准参数
 	FVector* TargetBaseLocation = &DefaultLocation;
 	FRotator* TargetBaseRotation = &DefaultRotation;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
@@ -96,6 +102,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15};
 		//ADS Walk晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15};
+		//Run晃动
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct RunBob = FWeaponBobStruct{8, 3, 3, 3, 3, 0.7};
 		FWeaponBobStruct* CurrentBob = &IdleBob;
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;

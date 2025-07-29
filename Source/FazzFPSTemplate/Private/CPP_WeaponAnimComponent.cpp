@@ -50,6 +50,33 @@ void UCPP_WeaponAnimComponent::SetInput(FVector Vector, FRotator Rotator)
 	InputRotator = Rotator;
 }
 
+void UCPP_WeaponAnimComponent::StartSprint()
+{
+	TargetBaseLocation = &SprintBaseLocation;
+	TargetBaseRotation = &SprintBaseRotation;
+	//设置当前后坐力结构体
+	CurrentRecoilStruct = &DefaultRecoilStruct;
+	//设置当前Sway结构体
+	CurrentSwayStruct = &DefaultSway;
+	//设置当前Bob结构体
+	// TODO: 增加一个Sprint Bob结构体
+	CurrentBob = &RunBob;
+	IsSprinting = true;
+}
+
+void UCPP_WeaponAnimComponent::EndSprint()
+{
+	TargetBaseLocation = &DefaultLocation;
+	TargetBaseRotation = &DefaultRotation;
+	//设置当前后坐力结构体
+	CurrentRecoilStruct = &DefaultRecoilStruct;
+	//设置当前Sway结构体
+	CurrentSwayStruct = &DefaultSway;
+	//设置当前Bob结构体
+	CurrentBob = &IdleBob;
+	IsSprinting = false;
+}
+
 // Called every frame
 void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -159,6 +186,9 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 		if (IsAiming || PlayingADSAnimation) {
 			CurrentBob = &IdleBobADS;
 		}
+	}
+	if (IsSprinting) {
+		CurrentBob = &RunBob;
 	}
 	// 计算目标 Bob 位移
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
