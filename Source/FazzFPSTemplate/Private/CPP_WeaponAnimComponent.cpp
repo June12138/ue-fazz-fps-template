@@ -45,6 +45,7 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 void UCPP_WeaponAnimComponent::SetInputVector(FVector Vector)
 {
 	InputVector = Vector;
+	InputVector2D = FVector2D(Vector.X, Vector.Y);
 }
 
 void UCPP_WeaponAnimComponent::SetInputRotator(FRotator Rotator)
@@ -112,17 +113,20 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// 武器Sway处理
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
+	// MovementOffset处理
+	UpdateMovementOffset();
+	CurrentMovementOffset = FMath::VInterpTo(CurrentMovementOffset, TargetMovementOffset, DeltaTime, MovementOffsetInterpolationRate);
 	// 合并结果
-	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult;
+	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
 	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
-	Result = CurrentBaseLocation + TotalOffset;
+	Result = CurrentBaseLocation + TotalOffset + CurrentADSCorrection;
 	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	if (WeaponRoot)
 	{
-		WeaponRoot->SetRelativeLocation(Result + CurrentADSCorrection);
+		WeaponRoot->SetRelativeLocation(Result);
 		WeaponRoot->SetRelativeRotation(RotationResult);
 	}
 	else
@@ -175,7 +179,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 {
 	// 根据移动状态设置参数
 	float multiplier = 1.f;
-	float MoveSize = InputVector.Size();
+	MoveSize = InputVector2D.Size();
 	if (MoveSize > 0.01f)
 	{
 		multiplier = MoveSize;
@@ -221,9 +225,20 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset;
 	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
 }
+void UCPP_WeaponAnimComponent::UpdateMovementOffset()
+{
+	if (IsAiming || PlayingADSAnimation) {
+		TargetMovementOffset = FVector::ZeroVector;
+	}else{
+		float X = InputVector.Y * MovementOffsetMax.X * -1;
+		float Y = InputVector.X * MovementOffsetMax.Y * -1;
+		float Z = InputVector.Z * MovementOffsetMax.Z * -1;
+		TargetMovementOffset = FVector(X, Y, Z);
+	}
+}
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {
-	float MoveSize = InputVector.Size();
+	MoveSize = InputVector2D.Size();
 	CurrentSwayStruct = &DefaultSway;
 	switch (CurrentStance)
 	{

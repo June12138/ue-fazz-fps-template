@@ -37,8 +37,10 @@ public:
 	//设置玩家输入数据
 	UFUNCTION(BlueprintCallable) void SetInputVector(FVector Vector);
 	UFUNCTION(BlueprintCallable) void SetInputRotator(FRotator Rotator);
+	FVector2D InputVector2D;
 	FVector InputVector;
 	FRotator InputRotator;
+	float MoveSize;
 	//基准
 	enum class EStanceState
 	{
@@ -51,20 +53,20 @@ public:
 	FRotator DefaultBaseRotation;
 	FVector ADSBaseLocation;
 		// 奔跑基准参数
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector SprintBaseLocation = FVector(25, 5, -15);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(-20, -55, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector SprintBaseLocation = FVector(25, -1, -13);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(-19,-35,-24);
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
 		// 下蹲基准参数
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(25, 3, -10);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(-10, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(25,9,-8);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(-2,3,-14);
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
 		//当前基准参数
 	FVector* TargetBaseLocation = &DefaultBaseLocation;
 	FRotator* TargetBaseRotation = &DefaultBaseRotation;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 10;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 7;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 7;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//结算
@@ -129,6 +131,12 @@ public:
 		// 开镜状态下sway
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway")FWeaponSwayStruct ADSSway = FWeaponSwayStruct{3, 0.3, 3, 0.3};
 	void UpdateSway();
+	// MovementOffset相关
+	FVector CurrentMovementOffset = FVector::ZeroVector;
+	FVector TargetMovementOffset = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") float MovementOffsetInterpolationRate = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") FVector MovementOffsetMax = FVector(2.f, 2.f, 5.f);
+	void UpdateMovementOffset();
 	// ADS相关
 	bool ToADS = false;
 	bool PlayingADSAnimation = false;
@@ -142,7 +150,7 @@ public:
 	UFUNCTION(BlueprintCallable) void EndADS(bool UseCurve = true);
 	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.2;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 41;
 	// 准星位置修正
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
