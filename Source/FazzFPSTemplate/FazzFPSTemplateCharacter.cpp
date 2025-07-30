@@ -80,8 +80,6 @@ void AFazzFPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 void AFazzFPSTemplateCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
-	//UE_LOG x and y of movement vector
-	//UE_LOG(LogTemp, Warning, TEXT("Movement Vector: X = %f, Y = %f"), MovementVector.X, MovementVector.Y);
 	if (Controller != nullptr)
 	{
 		// add movement 

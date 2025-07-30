@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CPP_WeaponAnimComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -10,10 +9,9 @@
 UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	//bAutoActivate = true;
+	// bAutoActivate = true;
 	SetComponentTickEnabled(true);
 }
-
 
 // Called when the game starts
 void UCPP_WeaponAnimComponent::BeginPlay()
@@ -22,7 +20,7 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 	// ...
 }
 
-void UCPP_WeaponAnimComponent::Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet)
+void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComponent *SightToSet, UCameraComponent *CameraRootToSet)
 {
 	WeaponRoot = WeaponRootToSet;
 	Sight = SightToSet;
@@ -33,20 +31,24 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent* WeaponRootToSet, USceneComp
 		CurrentBaseLocation = DefaultBaseLocation;
 		DefaultBaseRotation = WeaponRoot->GetRelativeRotation();
 		CurrentBaseRotation = DefaultBaseRotation;
-		//设置ADS基准位置
+		// 设置ADS基准位置
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
 		ADSBaseLocation = DefaultBaseLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
 		Sight_RootOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
-		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
-		//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
+		// UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
+		// UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
 	}
 }
-void UCPP_WeaponAnimComponent::SetInput(FVector Vector, FRotator Rotator)
+void UCPP_WeaponAnimComponent::SetInputVector(FVector Vector)
 {
 	InputVector = Vector;
+}
+
+void UCPP_WeaponAnimComponent::SetInputRotator(FRotator Rotator)
+{
 	InputRotator = Rotator;
 }
 
@@ -71,7 +73,7 @@ void UCPP_WeaponAnimComponent::EndCrouch()
 }
 
 // Called every frame
-void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!ShouldPlayAnimation) return;
@@ -80,7 +82,7 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// 更新基准位置和旋转
 	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
 	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
-	//武器后坐处理
+	// 武器后坐处理
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
 	if (IsPlayingRecoilAnim && RecoilCurve)
 	{
@@ -95,17 +97,17 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 			CurrentRecoilTime = 0.f;
 		}
 	}
-	//武器摇晃处理
+	// 武器摇晃处理
 	UpdateBob();
 	CurrentBobResult = FMath::VInterpTo(CurrentBobResult, BobResult, DeltaTime, BobInterpolationRate);
 	CurrentBobResultRot = FMath::RInterpTo(CurrentBobResultRot, BobResultRot, DeltaTime, BobRotationInterpolationRate);
-	//武器Sway处理
+	// 武器Sway处理
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
 	// 合并结果
 	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult;
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
-	//ADS处理
+	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
 	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
 	Result = CurrentBaseLocation + TotalOffset;
@@ -134,7 +136,8 @@ void UCPP_WeaponAnimComponent::StartRecoilAnim()
 	IsPlayingRecoilAnim = true;
 }
 
-FVector UCPP_WeaponAnimComponent::JitterVector(FVector Input, FVector Jitter) {
+FVector UCPP_WeaponAnimComponent::JitterVector(FVector Input, FVector Jitter)
+{
 	float X = FMath::RandRange(Input.X - Jitter.X / 2, Input.X + Jitter.X / 2);
 	float Y = FMath::RandRange(Input.Y - Jitter.Y / 2, Input.Y + Jitter.Y / 2);
 	float Z = FMath::RandRange(Input.Z - Jitter.Z / 2, Input.Z + Jitter.Z / 2);
@@ -154,9 +157,10 @@ void UCPP_WeaponAnimComponent::EndADS(bool UseCurve)
 	PlayingADSAnimation = true;
 	if (!UseCurve) { CurrentADSTime = 0.f; }
 }
-void UCPP_WeaponAnimComponent::UpdateSway() {
-	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax/2, CurrentSwayStruct->SwayYawMax/2);
-	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct->SwayPitchMultiplier, -CurrentSwayStruct->SwayPitchMax/2, CurrentSwayStruct->SwayPitchMax/2);
+void UCPP_WeaponAnimComponent::UpdateSway()
+{
+	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax / 2, CurrentSwayStruct->SwayYawMax / 2);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct->SwayPitchMultiplier, -CurrentSwayStruct->SwayPitchMax / 2, CurrentSwayStruct->SwayPitchMax / 2);
 	TargetSway = FRotator(Pitch, Yaw, 0.f);
 }
 void UCPP_WeaponAnimComponent::UpdateBob()
@@ -175,7 +179,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
 	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
 	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
-    float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw + Noise;
+	float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw + Noise;
 	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier)) * CurrentBob->BobPitch + Noise;
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
@@ -212,32 +216,32 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 	CurrentSwayStruct = &DefaultSway;
 	switch (CurrentStance)
 	{
-		case EStanceState::Default:
-			TargetBaseRotation = &DefaultBaseRotation;
-			TargetBaseLocation = &DefaultBaseLocation;
-			CurrentRecoilStruct = &DefaultRecoilStruct;
+	case EStanceState::Default:
+		TargetBaseRotation = &DefaultBaseRotation;
+		TargetBaseLocation = &DefaultBaseLocation;
+		CurrentRecoilStruct = &DefaultRecoilStruct;
 			if (MoveSize > 0.1f) {
-				CurrentBob = &WalkBob;
+			CurrentBob = &WalkBob;
 			}	else {
-				CurrentBob = &IdleBob;
-			}
-			break;
-		case EStanceState::Sprint:
-			CurrentBob = &RunBob;
-			TargetBaseLocation = &SprintBaseLocation;
-			TargetBaseRotation = &SprintBaseRotation;
-			break;
-		case EStanceState::Crouch:
-			TargetBaseLocation = &CrouchBaseLocation;
-			TargetBaseRotation = &CrouchBaseRotation;
+			CurrentBob = &IdleBob;
+		}
+		break;
+	case EStanceState::Sprint:
+		CurrentBob = &RunBob;
+		TargetBaseLocation = &SprintBaseLocation;
+		TargetBaseRotation = &SprintBaseRotation;
+		break;
+	case EStanceState::Crouch:
+		TargetBaseLocation = &CrouchBaseLocation;
+		TargetBaseRotation = &CrouchBaseRotation;
 			if (MoveSize > 0.1f) {
-				CurrentBob = &WalkBob;
+			CurrentBob = &WalkBob;
 			}	else {
-				CurrentBob = &IdleBob;
-			}
-			break;
+			CurrentBob = &IdleBob;
+		}
+		break;
 	}
-	//ADS
+	// ADS
 	if (IsAiming || PlayingADSAnimation) {
 		CurrentSwayStruct = &ADSSway;
 		TargetBaseRotation = &ADSBaseRotation;

@@ -35,7 +35,8 @@ public:
 	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet);
 	void UpdateSettings();
 	//设置玩家输入数据
-	UFUNCTION(BlueprintCallable) void SetInput(FVector Vector, FRotator Rotator);
+	UFUNCTION(BlueprintCallable) void SetInputVector(FVector Vector);
+	UFUNCTION(BlueprintCallable) void SetInputRotator(FRotator Rotator);
 	FVector InputVector;
 	FRotator InputRotator;
 	//基准
