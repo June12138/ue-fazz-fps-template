@@ -137,6 +137,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") float MovementOffsetInterpolationRate = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") FVector MovementOffsetMax = FVector(2.f, 2.f, 5.f);
 	void UpdateMovementOffset();
+	// 跳跃相关
+	enum class EJumpState
+	{
+		Default,
+		Start,
+		MidAir,
+		Land
+	};
+	EJumpState CurrentJumpState = EJumpState::Default;
+	float CurrentJumpOffset = 0.f;
+	float DefaultJumpOffset = 0.f;
+	float* TargetJumpOffset = &DefaultJumpOffset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffset = 8.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float MidAirOffset = 3.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float LandOffset = -3.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateUp = 5.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateDown = 15.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpTransitionTolerance = 0.7f; // 跳跃动画转换阶段时允许的误差范围，值越大转换越早
+	float* CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
+	UFUNCTION(BlueprintCallable) void StartJump();
+	UFUNCTION(BlueprintCallable) void MidAir();
+	UFUNCTION(BlueprintCallable) void EndJump();
+	void UpdateJumpState();
+	void UpdateJump(float DeltaTime);
 	// ADS相关
 	bool ToADS = false;
 	bool PlayingADSAnimation = false;
@@ -156,5 +180,5 @@ public:
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
 	float ADSAlpha = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 10; //ADS插值速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 15; //ADS插值速率
 };

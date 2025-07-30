@@ -116,8 +116,10 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// MovementOffset处理
 	UpdateMovementOffset();
 	CurrentMovementOffset = FMath::VInterpTo(CurrentMovementOffset, TargetMovementOffset, DeltaTime, MovementOffsetInterpolationRate);
+	// 跳跃处理
+	UpdateJump(DeltaTime);
 	// 合并结果
-	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset;
+	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset);
 	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
 	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
@@ -277,6 +279,57 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 			CurrentBob = &WalkBobADS;
 		}else{
 			CurrentBob = &IdleBobADS;
+		}
+	}
+}
+void UCPP_WeaponAnimComponent::StartJump()
+{
+	if (CurrentJumpState == EJumpState::Default) {
+		CurrentJumpState = EJumpState::Start;
+	}
+}
+void UCPP_WeaponAnimComponent::MidAir()
+{
+	if (CurrentJumpState != EJumpState::Start) {
+		CurrentJumpState = EJumpState::MidAir;
+	}
+}
+void UCPP_WeaponAnimComponent::EndJump()
+{
+    if (CurrentJumpState == EJumpState::MidAir || CurrentJumpState == EJumpState::Start) {
+		CurrentJumpState = EJumpState::Land;
+	}
+}
+void UCPP_WeaponAnimComponent::UpdateJump(float DeltaTime){
+	UpdateJumpState();
+	//CurrentJumpOffset = FMath::FInterpConstantTo(CurrentJumpOffset, *TargetJumpOffset, DeltaTime, *CurrentJumpInterpolationRate);
+	CurrentJumpOffset = FMath::FInterpTo(CurrentJumpOffset, *TargetJumpOffset, DeltaTime, *CurrentJumpInterpolationRate);
+	//UE_LOG(LogTemp, Warning, TEXT("CurrentJumpOffset: %f/%f: %f"), CurrentJumpOffset, *TargetJumpOffset, *CurrentJumpInterpolationRate);
+}
+
+void UCPP_WeaponAnimComponent::UpdateJumpState()
+{
+		switch (CurrentJumpState){
+			case EJumpState::Default:
+				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
+				TargetJumpOffset = &DefaultJumpOffset;
+				break;
+			case EJumpState::Start:
+				TargetJumpOffset = &JumpOffset;
+				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset) < JumpTransitionTolerance) {
+					CurrentJumpState = EJumpState::MidAir;
+				}
+				break;
+			case EJumpState::MidAir:
+				TargetJumpOffset = &MidAirOffset;
+				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
+				break;
+			case EJumpState::Land:
+				TargetJumpOffset = &LandOffset;
+				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateDown;
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset) < JumpTransitionTolerance) {
+					CurrentJumpState = EJumpState::Default;
 		}
 	}
 }
