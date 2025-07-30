@@ -54,22 +54,30 @@ void UCPP_WeaponAnimComponent::SetInputRotator(FRotator Rotator)
 
 void UCPP_WeaponAnimComponent::StartSprint()
 {
-	CurrentStance = EStanceState::Sprint;
+	if (CurrentStance != EStanceState::Sprint){
+		CurrentStance = EStanceState::Sprint;
+	}
 }
 
 void UCPP_WeaponAnimComponent::EndSprint()
 {
-	CurrentStance = EStanceState::Default;
+	if (CurrentStance == EStanceState::Sprint){
+		CurrentStance = EStanceState::Default;
+	}
 }
 
 void UCPP_WeaponAnimComponent::StartCrouch()
 {
-	CurrentStance = EStanceState::Crouch;
+	if (CurrentStance != EStanceState::Crouch){
+		CurrentStance = EStanceState::Crouch;
+	}
 }
 
 void UCPP_WeaponAnimComponent::EndCrouch()
 {
-	CurrentStance = EStanceState::Default;
+	if (CurrentStance == EStanceState::Crouch){
+		CurrentStance = EStanceState::Default;
+	}
 }
 
 // Called every frame
@@ -171,6 +179,9 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	if (MoveSize > 0.01f)
 	{
 		multiplier = MoveSize;
+	}
+	if (CurrentStance == EStanceState::Crouch) {
+		multiplier *= CrouchMultiplier;
 	}
 	// 计算目标 Bob 位移
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
