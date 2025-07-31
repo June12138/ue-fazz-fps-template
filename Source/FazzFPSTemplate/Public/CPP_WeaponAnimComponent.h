@@ -31,8 +31,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere) bool ShouldPlayAnimation = true;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Roots") USceneComponent* WeaponRoot = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* Sight = nullptr;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") UCameraComponent* CameraRoot = nullptr;
-	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, UCameraComponent* CameraRootToSet);
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* CameraRoot = nullptr;
+	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, USceneComponent* CameraRootToSet);
+	FVector CamInitialLocation;
 	void UpdateSettings();
 	//设置玩家输入数据
 	UFUNCTION(BlueprintCallable) void SetInputVector(FVector Vector);
@@ -177,6 +178,15 @@ public:
 	UFUNCTION(BlueprintCallable) void EndJump();
 	void UpdateJumpState();
 	void UpdateJump(float DeltaTime);
+	// 侧头相关
+	FVector CurrentTiltOffset = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadonly) float CurrentTiltRoll = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltInterpolationRate = 5.f; //侧头插值速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetLeft = FVector(0.f, -20.f, 0.f); //左侧头偏移
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetRight = FVector(0.f, 20.f, 0.f); //右侧头偏移
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltRoll = 15.f;
+	UPROPERTY(BlueprintReadonly) int TiltDirection = 0; // -1为左侧头，1为右侧头，0为无侧头
+	UFUNCTION(BlueprintCallable) void SetTilt(int Direction);
 	// ADS相关
 	bool ToADS = false;
 	bool PlayingADSAnimation = false;

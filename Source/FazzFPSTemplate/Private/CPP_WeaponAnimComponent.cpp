@@ -20,7 +20,7 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 	// ...
 }
 
-void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComponent *SightToSet, UCameraComponent *CameraRootToSet)
+void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComponent *SightToSet, USceneComponent *CameraRootToSet)
 {
 	WeaponRoot = WeaponRootToSet;
 	Sight = SightToSet;
@@ -31,12 +31,11 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 		CurrentBaseLocation = DefaultBaseLocation;
 		DefaultBaseRotation = WeaponRoot->GetRelativeRotation();
 		CurrentBaseRotation = DefaultBaseRotation;
-		// ÉèÖÃADS»ù×¼Î»ÖÃ
+		// è®¾ç½®ADSåŸºå‡†ä½ç½®
 		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
 		ADSBaseLocation = DefaultBaseLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
 		Sight_RootOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
-		// UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetLocation().X, SightRelativeTransform.GetLocation().Y, SightRelativeTransform.GetLocation().Z);
-		// UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), SightRelativeTransform.GetRotation().Rotator().Pitch, SightRelativeTransform.GetRotation().Rotator().Yaw, SightRelativeTransform.GetRotation().Rotator().Roll);
+		CamInitialLocation = CameraRoot->GetRelativeLocation();
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
@@ -88,10 +87,31 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	if (!ShouldPlayAnimation) return;
 	UpdateSettings();
 	ElapsedTime += DeltaTime;
-	// ¸üĞÂ»ù×¼Î»ÖÃºÍĞı×ª
+	// æ›´æ–°åŸºå‡†ä½ç½®å’Œæ—‹è½¬
 	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
 	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
-	// ÎäÆ÷ºó×ø´¦Àí
+	// ä¾§å¤´å¤„ç†
+	switch (TiltDirection)
+	{
+		case 0:
+			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, FVector::ZeroVector, DeltaTime, TiltInterpolationRate);
+			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, 0.f, DeltaTime, TiltInterpolationRate);
+			break;
+		case 1:
+			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, TiltOffsetRight, DeltaTime, TiltInterpolationRate);
+			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, TiltRoll, DeltaTime, TiltInterpolationRate);
+			break;
+		case -1:
+			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, TiltOffsetLeft, DeltaTime, TiltInterpolationRate);
+			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, -TiltRoll, DeltaTime, TiltInterpolationRate);
+			break;
+	}
+	if (CameraRoot){
+		CameraRoot->SetRelativeLocation(CamInitialLocation + CurrentTiltOffset);
+		CameraRoot->SetRelativeRotation(FRotator(0.f, 0.f, CurrentTiltRoll));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
+	// æ­¦å™¨ååå¤„ç†
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
 	if (IsPlayingRecoilAnim && RecoilCurve)
 	{
@@ -111,27 +131,27 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, FVector::ZeroVector, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
 		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
 	}
-	// ÎäÆ÷Ò¡»Î´¦Àí
+	// æ­¦å™¨æ‘‡æ™ƒå¤„ç†
 	UpdateBob();
 	CurrentBobResult = FMath::VInterpTo(CurrentBobResult, BobResult, DeltaTime, BobInterpolationRate);
 	CurrentBobResultRot = FMath::RInterpTo(CurrentBobResultRot, BobResultRot, DeltaTime, BobRotationInterpolationRate);
-	// ÎäÆ÷Sway´¦Àí
+	// æ­¦å™¨Swayå¤„ç†
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
-	// MovementOffset´¦Àí
+	// MovementOffsetå¤„ç†
 	UpdateMovementOffset();
 	CurrentMovementOffset = FMath::VInterpTo(CurrentMovementOffset, TargetMovementOffset, DeltaTime, MovementOffsetInterpolationRate);
 	CurrentMovementRotationOffset = FMath::FInterpTo(CurrentMovementRotationOffset, TargetMovementRotationOffset, DeltaTime, MovementOffsetInterpolationRate);
-	// ÌøÔ¾´¦Àí
+	// è·³è·ƒå¤„ç†
 	UpdateJump(DeltaTime);
-	// ºÏ²¢½á¹û
+	// åˆå¹¶ç»“æœ
 	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset) + CurrentRecoilGradualOffset;
-	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion() * CurrentRecoilGradualRotOffset.Quaternion() * FRotator(0.f, 0.f, CurrentMovementRotationOffset).Quaternion());
-	// ADS´¦Àí
+	FRotator TotalRotationOffset = RecoilRotationResult + CurrentSway + CurrentBobResultRot + CurrentRecoilGradualRotOffset + FRotator(0.f, 0.f, CurrentMovementRotationOffset);
+	// ADSå¤„ç†
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
 	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
 	Result = CurrentBaseLocation + TotalOffset + CurrentADSCorrection;
-	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * TotalRotationOffset.Quaternion());
+	RotationResult = CurrentBaseRotation + TotalRotationOffset;
 	if (WeaponRoot)
 	{
 		WeaponRoot->SetRelativeLocation(Result);
@@ -185,7 +205,7 @@ void UCPP_WeaponAnimComponent::UpdateSway()
 }
 void UCPP_WeaponAnimComponent::UpdateBob()
 {
-	// ¸ù¾İÒÆ¶¯×´Ì¬ÉèÖÃ²ÎÊı
+	// æ ¹æ®ç§»åŠ¨çŠ¶æ€è®¾ç½®å‚æ•°
 	float multiplier = 1.f;
 	MoveSize = InputVector2D.Size();
 	if (MoveSize > 0.01f)
@@ -195,7 +215,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	if (CurrentStance == EStanceState::Crouch) {
 		multiplier *= CrouchMultiplier;
 	}
-	// ¼ÆËãÄ¿±ê Bob Î»ÒÆ
+	// è®¡ç®—ç›®æ ‡ Bob ä½ç§»
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
 	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier) * multiplier;
 	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob->BobNoise * multiplier;
@@ -209,7 +229,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 }
 void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
-	// ¸ù¾İÇúÏßºÍÊ±¼ä¼ÆËãADS¶¯»­µÄ²åÖµ
+	// æ ¹æ®æ›²çº¿å’Œæ—¶é—´è®¡ç®—ADSåŠ¨ç”»çš„æ’å€¼
 	if (PlayingADSAnimation && ADSCurve) {
 		if (ToADS) {
 			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
@@ -228,7 +248,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 		}
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
-	// ¸ù¾İTotalOffsetºÍTotalRotationOffsetÔ¤²â½áËãºóµÄ×¼ĞÇµÄÏà¶ÔÎ»ÖÃ
+	// æ ¹æ®TotalOffsetå’ŒTotalRotationOffseté¢„æµ‹ç»“ç®—åçš„å‡†æ˜Ÿçš„ç›¸å¯¹ä½ç½®
 	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
 	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset;
 	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
@@ -338,5 +358,12 @@ void UCPP_WeaponAnimComponent::UpdateJumpState()
 				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset) < JumpTransitionTolerance) {
 					CurrentJumpState = EJumpState::Default;
 		}
+	}
+}
+void UCPP_WeaponAnimComponent::SetTilt(int Direction){
+	if (Direction == TiltDirection){
+		TiltDirection = 0;
+	}else{
+		TiltDirection = Direction;
 	}
 }
