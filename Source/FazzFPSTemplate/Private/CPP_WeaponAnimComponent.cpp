@@ -100,11 +100,16 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
 		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
 		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
+		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate);
+		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate);
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
 			IsPlayingRecoilAnim = false;
 			CurrentRecoilTime = 0.f;
 		}
+	}else{
+		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, FVector::ZeroVector, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
+		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
 	}
 	// 武器摇晃处理
 	UpdateBob();
@@ -119,13 +124,13 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// 跳跃处理
 	UpdateJump(DeltaTime);
 	// 合并结果
-	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset);
-	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
+	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset) + CurrentRecoilGradualOffset;
+	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion() * CurrentRecoilGradualRotOffset.Quaternion());
 	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
 	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
 	Result = CurrentBaseLocation + TotalOffset + CurrentADSCorrection;
-	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion());
+	RotationResult = FRotator(CurrentBaseRotation.Quaternion() * TotalRotationOffset.Quaternion());
 	if (WeaponRoot)
 	{
 		WeaponRoot->SetRelativeLocation(Result);
@@ -224,7 +229,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 	}
 	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
 	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
-	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset;
+	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset;
 	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
 }
 void UCPP_WeaponAnimComponent::UpdateMovementOffset()

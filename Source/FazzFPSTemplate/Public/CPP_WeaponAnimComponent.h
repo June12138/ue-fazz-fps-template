@@ -79,23 +79,36 @@ public:
 	float CurrentRecoilTime = 0.0f;
 		//后坐力位置偏移
 	FVector RecoilTargetOffset;
+	FVector GradualRecoilOffsetTarget;
 	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
+	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //后坐力渐变偏移
 		//后坐力旋转偏移
 	FVector RecoilRotationTargetOffset;
+	FRotator CurrentRecoilGradualRotOffset;
+	//后坐力结构体
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
 	FWeaponRecoilStruct DefaultRecoilStruct = FWeaponRecoilStruct{
 		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
 		FVector(1.f,1.f,0.5), //后座随机偏移
 		FVector(1.f,0.f,0.f), //后座终止旋转偏移
-		FVector(1.f,2.f,1.f) //后座随机旋转偏移
-	}; //后坐力结构体
+		FVector(1.f,2.f,1.f), //后座随机旋转偏移
+		FVector(-3.f,0.f,3.f), //后座旋转随机偏移 
+		FRotator(6,0.f,0.f), //后座旋转渐进偏移 
+		2.f, //后座旋转随机偏移插值速率
+		5.f
+	};
+	//ADS后坐力结构体
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
 	FWeaponRecoilStruct ADSRecoilStruct = FWeaponRecoilStruct{
 		FVector(-0.5, 0.f, 0.3), //后座终止位置偏移
 		FVector(0.25,0.05,0.f), //后座随机偏移
 		FVector(0.3,0.0,0.0), //后座终止旋转偏移
-		FVector(0.2,0.2,10.f) //后座随机旋转偏移
-	}; //后坐力结构体
+		FVector(0.2,0.2,10.f), //后座随机旋转偏移
+		FVector(0.f,0.f,3.f),//后座旋转随机偏移 
+		FRotator(4.f,0.f,0.f), //后座旋转渐进偏移 
+		2.f, //后座旋转随机偏移插值速率
+		5.f
+	}; 
 	FWeaponRecoilStruct* CurrentRecoilStruct = &DefaultRecoilStruct;
 	void UpdateRecoilEnd();
 	UFUNCTION(BlueprintCallable)
@@ -168,7 +181,7 @@ public:
 	FVector CurrentADSCorrection;
 	FVector TargetADSCorrection = FVector::ZeroVector;
 	FVector CurrentADSOffset = FVector::ZeroVector;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(-0.25, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(0.f, 0.f, 0.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS(bool UseCurve = true);
