@@ -121,11 +121,12 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// MovementOffset处理
 	UpdateMovementOffset();
 	CurrentMovementOffset = FMath::VInterpTo(CurrentMovementOffset, TargetMovementOffset, DeltaTime, MovementOffsetInterpolationRate);
+	CurrentMovementRotationOffset = FMath::FInterpTo(CurrentMovementRotationOffset, TargetMovementRotationOffset, DeltaTime, MovementOffsetInterpolationRate);
 	// 跳跃处理
 	UpdateJump(DeltaTime);
 	// 合并结果
 	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset) + CurrentRecoilGradualOffset;
-	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion() * CurrentRecoilGradualRotOffset.Quaternion());
+	FRotator TotalRotationOffset = FRotator(RecoilRotationResult.Quaternion() * CurrentSway.Quaternion() * CurrentBobResultRot.Quaternion() * CurrentRecoilGradualRotOffset.Quaternion() * FRotator(0.f, 0.f, CurrentMovementRotationOffset).Quaternion());
 	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
 	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
@@ -242,6 +243,7 @@ void UCPP_WeaponAnimComponent::UpdateMovementOffset()
 		float Z = InputVector.Z * MovementOffsetMax.Z * -1;
 		TargetMovementOffset = FVector(X, Y, Z);
 	}
+	TargetMovementRotationOffset = InputVector.X * MovementRotationOffsetMax;
 }
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {

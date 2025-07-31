@@ -147,8 +147,11 @@ public:
 	// MovementOffset相关
 	FVector CurrentMovementOffset = FVector::ZeroVector;
 	FVector TargetMovementOffset = FVector::ZeroVector;
+	float CurrentMovementRotationOffset = 0.f;
+	float TargetMovementRotationOffset = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") float MovementOffsetInterpolationRate = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") FVector MovementOffsetMax = FVector(2.f, 2.f, 5.f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") float MovementRotationOffsetMax = 5.f;
 	void UpdateMovementOffset();
 	// 跳跃相关
 	enum class EJumpState
