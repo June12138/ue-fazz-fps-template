@@ -16,4 +16,5 @@ struct FWeaponRecoilStruct {
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") FRotator RecoilGradualRotationOffset = FRotator(-0.25,0.f,0.f);//后座旋转渐进偏移 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") float RecoilGradualOffsetInterpolationRate = 2.f; //渐进后座偏移插值速率
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Recoil") float RecoilGradualOffsetRecoverRate = 5.f; //渐进后座偏回复插值速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Recoil", meta=(AllowAbstract="false")) TSubclassOf<UCameraShakeBase> RecoilCameraShakeClass;
 };

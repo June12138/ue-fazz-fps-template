@@ -110,7 +110,7 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		CameraRoot->SetRelativeLocation(CamInitialLocation + CurrentTiltOffset);
 		CameraRoot->SetRelativeRotation(FRotator(0.f, 0.f, CurrentTiltRoll));
 	}
-	UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
+	//UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
 	// 武器后坐处理
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
 	if (IsPlayingRecoilAnim && RecoilCurve)
@@ -128,6 +128,9 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 			CurrentRecoilTime = 0.f;
 		}
 	}else{
+		if (!RecoilCurve){
+			UE_LOG(LogTemp, Error, TEXT("RecoilCurve nullptr"));
+		}
 		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, FVector::ZeroVector, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
 		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
 	}
@@ -174,6 +177,19 @@ void UCPP_WeaponAnimComponent::StartRecoilAnim()
 	UpdateRecoilEnd();
 	CurrentRecoilTime = 0.f;
 	IsPlayingRecoilAnim = true;
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (OwnerPawn)
+	{
+	    APlayerController* PlayerController = Cast<APlayerController>(OwnerPawn->GetController());
+	    if (PlayerController)
+	    {
+	        if (PlayerController->PlayerCameraManager && CurrentRecoilStruct->RecoilCameraShakeClass)
+	        {
+	            PlayerController->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct->RecoilCameraShakeClass, 1.f);
+				UE_LOG(LogTemp, Warning, TEXT("Executing Cam Shake"));
+	        }
+	    }
+	}
 }
 
 FVector UCPP_WeaponAnimComponent::JitterVector(FVector Input, FVector Jitter)
