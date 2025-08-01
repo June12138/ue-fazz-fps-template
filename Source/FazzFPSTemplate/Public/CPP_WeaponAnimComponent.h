@@ -101,10 +101,10 @@ public:
 	//ADS后坐力结构体
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
 	FWeaponRecoilStruct ADSRecoilStruct = FWeaponRecoilStruct{
-		FVector(-0.5, 0.f, 0.3), //后座终止位置偏移
-		FVector(0.25,0.05,0.f), //后座随机偏移
+		FVector(-0.25, 0.f, 0.3), //后座终止位置偏移
+		FVector(0.1,0.05,0.f), //后座随机偏移
 		FVector(0.3,0.0,0.0), //后座终止旋转偏移
-		FVector(0.2,0.2,10.f), //后座随机旋转偏移
+		FVector(0.2,0.2,5.f), //后座随机旋转偏移
 		FVector(0.f,0.f,3.f),//后座旋转随机偏移 
 		FRotator(4.f,0.f,0.f), //后座旋转渐进偏移 
 		2.f, //后座旋转随机偏移插值速率
@@ -187,6 +187,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltRoll = 15.f;
 	UPROPERTY(BlueprintReadonly) int TiltDirection = 0; // -1为左侧头，1为右侧头，0为无侧头
 	UFUNCTION(BlueprintCallable) void SetTilt(int Direction);
+	void UpdateTilt(float DeltaTime);
 	// ADS相关
 	bool ToADS = false;
 	bool PlayingADSAnimation = false;

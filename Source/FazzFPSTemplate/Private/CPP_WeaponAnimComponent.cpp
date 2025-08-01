@@ -91,25 +91,7 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
 	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
 	// 侧头处理
-	switch (TiltDirection)
-	{
-		case 0:
-			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, FVector::ZeroVector, DeltaTime, TiltInterpolationRate);
-			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, 0.f, DeltaTime, TiltInterpolationRate);
-			break;
-		case 1:
-			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, TiltOffsetRight, DeltaTime, TiltInterpolationRate);
-			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, TiltRoll, DeltaTime, TiltInterpolationRate);
-			break;
-		case -1:
-			CurrentTiltOffset = FMath::VInterpTo(CurrentTiltOffset, TiltOffsetLeft, DeltaTime, TiltInterpolationRate);
-			CurrentTiltRoll = FMath::FInterpTo(CurrentTiltRoll, -TiltRoll, DeltaTime, TiltInterpolationRate);
-			break;
-	}
-	if (CameraRoot){
-		CameraRoot->SetRelativeLocation(CamInitialLocation + CurrentTiltOffset);
-		CameraRoot->SetRelativeRotation(FRotator(0.f, 0.f, CurrentTiltRoll));
-	}
+	UpdateTilt(DeltaTime);
 	//UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
 	// 武器后坐处理
 	FRotator RecoilRotationResult = FRotator::ZeroRotator;
@@ -186,7 +168,7 @@ void UCPP_WeaponAnimComponent::StartRecoilAnim()
 	        if (PlayerController->PlayerCameraManager && CurrentRecoilStruct->RecoilCameraShakeClass)
 	        {
 	            PlayerController->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct->RecoilCameraShakeClass, 1.f);
-				UE_LOG(LogTemp, Warning, TEXT("Executing Cam Shake"));
+				//UE_LOG(LogTemp, Warning, TEXT("Executing Cam Shake"));
 	        }
 	    }
 	}
@@ -381,5 +363,30 @@ void UCPP_WeaponAnimComponent::SetTilt(int Direction){
 		TiltDirection = 0;
 	}else{
 		TiltDirection = Direction;
+	}
+}
+void UCPP_WeaponAnimComponent::UpdateTilt(float DeltaTime){
+    	// 侧头处理
+	float Alpha = 0.f;
+	Alpha = FMath::Clamp(DeltaTime * TiltInterpolationRate, 0.f, 1.f);
+	Alpha = 1 - FMath::Square(1 - Alpha); // 二次缓出
+	switch (TiltDirection)
+	{
+		case 0:
+			CurrentTiltOffset = FMath::Lerp(CurrentTiltOffset, FVector::ZeroVector, Alpha);
+			CurrentTiltRoll = FMath::Lerp(CurrentTiltRoll, 0.f, Alpha);
+			break;
+		case 1:
+			CurrentTiltOffset = FMath::Lerp(CurrentTiltOffset, TiltOffsetRight, Alpha);
+			CurrentTiltRoll = FMath::Lerp(CurrentTiltRoll, TiltRoll, Alpha);
+			break;
+		case -1:
+		CurrentTiltOffset = FMath::Lerp(CurrentTiltOffset, TiltOffsetLeft, Alpha);
+			CurrentTiltRoll = FMath::Lerp(CurrentTiltRoll, -TiltRoll, Alpha);
+			break;
+	}
+	if (CameraRoot){
+		CameraRoot->SetRelativeLocation(CamInitialLocation + CurrentTiltOffset);
+		CameraRoot->SetRelativeRotation(FRotator(0.f, 0.f, CurrentTiltRoll));
 	}
 }
