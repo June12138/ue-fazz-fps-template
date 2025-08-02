@@ -102,8 +102,8 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
 		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
 		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
-		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate);
-		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate);
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
 			IsPlayingRecoilAnim = false;
@@ -113,8 +113,8 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		if (!RecoilCurve){
 			UE_LOG(LogTemp, Error, TEXT("RecoilCurve nullptr"));
 		}
-		CurrentRecoilGradualOffset = FMath::VInterpTo(CurrentRecoilGradualOffset, FVector::ZeroVector, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
-		CurrentRecoilGradualRotOffset = FMath::RInterpTo(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate);
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
 	}
 	// 武器摇晃处理
 	UpdateBob();
@@ -367,9 +367,7 @@ void UCPP_WeaponAnimComponent::SetTilt(int Direction){
 }
 void UCPP_WeaponAnimComponent::UpdateTilt(float DeltaTime){
     	// 侧头处理
-	float Alpha = 0.f;
-	Alpha = FMath::Clamp(DeltaTime * TiltInterpolationRate, 0.f, 1.f);
-	Alpha = 1 - FMath::Square(1 - Alpha); // 二次缓出
+	float Alpha = SqrtAlpha(DeltaTime, TiltInterpolationRate);
 	switch (TiltDirection)
 	{
 		case 0:
@@ -389,4 +387,13 @@ void UCPP_WeaponAnimComponent::UpdateTilt(float DeltaTime){
 		CameraRoot->SetRelativeLocation(CamInitialLocation + CurrentTiltOffset);
 		CameraRoot->SetRelativeRotation(FRotator(0.f, 0.f, CurrentTiltRoll));
 	}
+}
+
+float UCPP_WeaponAnimComponent::SqrtAlpha(float DeltaTime, float Rate)
+{
+	// 使用平方根插值
+	float Alpha = 0.f;
+	Alpha = FMath::Clamp(DeltaTime * Rate, 0.f, 1.f);
+	Alpha = 1 - FMath::Square(1 - Alpha); // 二次缓出
+	return Alpha;
 }
