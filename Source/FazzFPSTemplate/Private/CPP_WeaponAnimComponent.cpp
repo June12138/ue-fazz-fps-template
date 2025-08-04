@@ -88,38 +88,19 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateSettings();
 	ElapsedTime += DeltaTime;
 	// 更新基准位置和旋转
-	CurrentBaseLocation = FMath::VInterpTo(CurrentBaseLocation, *TargetBaseLocation, DeltaTime, BaseLocationInterpolationRate);
-	CurrentBaseRotation = FMath::RInterpTo(CurrentBaseRotation, *TargetBaseRotation, DeltaTime, BaseRotationInterpolationRate);
+	CurrentBaseLocation = FMath::Lerp(CurrentBaseLocation, *TargetBaseLocation, SqrtAlpha(DeltaTime, BaseLocationInterpolationRate));
+	CurrentBaseRotation = FMath::Lerp(CurrentBaseRotation, *TargetBaseRotation,	SqrtAlpha(DeltaTime, BaseRotationInterpolationRate));
 	// 侧头处理
 	UpdateTilt(DeltaTime);
 	//UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
 	// 武器后坐处理
-	FRotator RecoilRotationResult = FRotator::ZeroRotator;
-	if (IsPlayingRecoilAnim && RecoilCurve)
-	{
-		CurrentRecoilTime = FMath::Clamp(CurrentRecoilTime + DeltaTime, 0.f, RecoilAnimTime);
-		float alpha = RecoilCurve->GetFloatValue(CurrentRecoilTime / RecoilAnimTime);
-		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
-		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
-		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
-		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-		if (CurrentRecoilTime == RecoilAnimTime)
-		{
-			IsPlayingRecoilAnim = false;
-			CurrentRecoilTime = 0.f;
-		}
-	}else{
-		if (!RecoilCurve){
-			UE_LOG(LogTemp, Error, TEXT("RecoilCurve nullptr"));
-		}
-		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-	}
+	UpdateRecoil(DeltaTime);
 	// 武器摇晃处理
 	UpdateBob();
-	CurrentBobResult = FMath::VInterpTo(CurrentBobResult, BobResult, DeltaTime, BobInterpolationRate);
-	CurrentBobResultRot = FMath::RInterpTo(CurrentBobResultRot, BobResultRot, DeltaTime, BobRotationInterpolationRate);
+	CurrentBobResult = FMath::Lerp(CurrentBobResult, BobResult, SqrtAlpha(DeltaTime, BobInterpolationRate));
+	CurrentBobResultRot = FMath::Lerp(CurrentBobResultRot, BobResultRot, SqrtAlpha(DeltaTime, BobRotationInterpolationRate));
+	//CurrentBobResult = FMath::VInterpTo(CurrentBobResult, BobResult, DeltaTime, BobInterpolationRate);
+	//CurrentBobResultRot = FMath::RInterpTo(CurrentBobResultRot, BobResultRot, DeltaTime, BobRotationInterpolationRate);
 	// 武器Sway处理
 	UpdateSway();
 	CurrentSway = FMath::RInterpTo(CurrentSway, TargetSway, DeltaTime, SwayInterpolationRate);
@@ -130,11 +111,19 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	// 跳跃处理
 	UpdateJump(DeltaTime);
 	// 合并结果
+	FVector PreADSOffset = CurrentBobResult + CurrentMovementOffset;
 	FVector TotalOffset = CurrentRecoilOffset + CurrentBobResult + CurrentMovementOffset + FVector(0.f, 0.f, CurrentJumpOffset) + CurrentRecoilGradualOffset;
 	FRotator TotalRotationOffset = RecoilRotationResult + CurrentSway + CurrentBobResultRot + CurrentRecoilGradualRotOffset + FRotator(0.f, 0.f, CurrentMovementRotationOffset);
 	// ADS处理
 	ADSCorrection(TotalOffset, TotalRotationOffset, DeltaTime);
-	CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
+	if (CurrentADSTime == 0.f){
+		//播放关镜动画时用插值
+		CurrentADSCorrection = FMath::Lerp(CurrentADSCorrection, TargetADSCorrection, SqrtAlpha(DeltaTime, ADSInterpolationRate));
+	}else{
+		//播放开镜动画时忽略插值直接设置
+		CurrentADSCorrection = TargetADSCorrection;
+	}
+	//CurrentADSCorrection = FMath::VInterpTo(CurrentADSCorrection, TargetADSCorrection, DeltaTime, ADSInterpolationRate);
 	Result = CurrentBaseLocation + TotalOffset + CurrentADSCorrection;
 	RotationResult = CurrentBaseRotation + TotalRotationOffset;
 	if (WeaponRoot)
@@ -188,12 +177,12 @@ void UCPP_WeaponAnimComponent::StartADS()
 	PlayingADSAnimation = true;
 }
 
-void UCPP_WeaponAnimComponent::EndADS(bool UseCurve)
+void UCPP_WeaponAnimComponent::EndADS()
 {
 	ToADS = false;
 	IsAiming = false;
 	PlayingADSAnimation = true;
-	if (!UseCurve) { CurrentADSTime = 0.f; }
+	CurrentADSTime = 0.f;
 }
 void UCPP_WeaponAnimComponent::UpdateSway()
 {
@@ -248,7 +237,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 	}
 	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
 	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
-	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset;
+	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset - FVector(0.f, 0.f, CurrentJumpOffset);
 	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
 }
 void UCPP_WeaponAnimComponent::UpdateMovementOffset()
@@ -326,13 +315,15 @@ void UCPP_WeaponAnimComponent::EndJump()
 	}
 }
 void UCPP_WeaponAnimComponent::UpdateJump(float DeltaTime){
-	UpdateJumpState();
-	//CurrentJumpOffset = FMath::FInterpConstantTo(CurrentJumpOffset, *TargetJumpOffset, DeltaTime, *CurrentJumpInterpolationRate);
-	CurrentJumpOffset = FMath::FInterpTo(CurrentJumpOffset, *TargetJumpOffset, DeltaTime, *CurrentJumpInterpolationRate);
-	//UE_LOG(LogTemp, Warning, TEXT("CurrentJumpOffset: %f/%f: %f"), CurrentJumpOffset, *TargetJumpOffset, *CurrentJumpInterpolationRate);
+	float Multiplier = 1.f;
+	if (IsAiming || PlayingADSAnimation) {
+		Multiplier = JumpADSMultiplier;
+	}
+	UpdateJumpState(Multiplier);
+	CurrentJumpOffset = FMath::Lerp(CurrentJumpOffset, *TargetJumpOffset * Multiplier, SqrtAlpha(DeltaTime, *CurrentJumpInterpolationRate));
 }
 
-void UCPP_WeaponAnimComponent::UpdateJumpState()
+void UCPP_WeaponAnimComponent::UpdateJumpState(float Multiplier)
 {
 		switch (CurrentJumpState){
 			case EJumpState::Default:
@@ -342,7 +333,7 @@ void UCPP_WeaponAnimComponent::UpdateJumpState()
 			case EJumpState::Start:
 				TargetJumpOffset = &JumpOffset;
 				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
-				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset) < JumpTransitionTolerance) {
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * Multiplier) < JumpTransitionTolerance) {
 					CurrentJumpState = EJumpState::MidAir;
 				}
 				break;
@@ -353,7 +344,7 @@ void UCPP_WeaponAnimComponent::UpdateJumpState()
 			case EJumpState::Land:
 				TargetJumpOffset = &LandOffset;
 				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateDown;
-				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset) < JumpTransitionTolerance) {
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * Multiplier) < JumpTransitionTolerance) {
 					CurrentJumpState = EJumpState::Default;
 		}
 	}
@@ -396,4 +387,27 @@ float UCPP_WeaponAnimComponent::SqrtAlpha(float DeltaTime, float Rate)
 	Alpha = FMath::Clamp(DeltaTime * Rate, 0.f, 1.f);
 	Alpha = 1 - FMath::Square(1 - Alpha); // 二次缓出
 	return Alpha;
+}
+void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
+	if (IsPlayingRecoilAnim && RecoilCurve)
+	{
+		CurrentRecoilTime = FMath::Clamp(CurrentRecoilTime + DeltaTime, 0.f, RecoilAnimTime);
+		float alpha = RecoilCurve->GetFloatValue(CurrentRecoilTime / RecoilAnimTime);
+		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
+		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
+		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		if (CurrentRecoilTime == RecoilAnimTime)
+		{
+			IsPlayingRecoilAnim = false;
+			CurrentRecoilTime = 0.f;
+		}
+	}else{
+		if (!RecoilCurve){
+			UE_LOG(LogTemp, Error, TEXT("RecoilCurve nullptr"));
+		}
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+	}
 }

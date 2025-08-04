@@ -68,8 +68,8 @@ public:
 		//当前基准参数
 	FVector* TargetBaseLocation = &DefaultBaseLocation;
 	FRotator* TargetBaseRotation = &DefaultBaseRotation;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 7;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 7;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//结算
@@ -84,11 +84,11 @@ public:
 	FVector RecoilTargetOffset;
 	FVector GradualRecoilOffsetTarget;
 	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
-	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //后坐力渐变偏移
-		//后坐力旋转偏移
-	FVector RecoilRotationTargetOffset;
-	FRotator CurrentRecoilGradualRotOffset;
-	//后坐力结构体
+	FRotator RecoilRotationResult = FRotator::ZeroRotator; //后坐力旋转偏移
+	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //后坐力渐进偏移
+	FVector RecoilRotationTargetOffset; //后坐力旋转偏移
+	FRotator CurrentRecoilGradualRotOffset; //后坐力旋转渐进偏移
+		//后坐力结构体
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
 	FWeaponRecoilStruct DefaultRecoilStruct = FWeaponRecoilStruct{
 		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
@@ -100,7 +100,7 @@ public:
 		2.f, //后座旋转随机偏移插值速率
 		5.f
 	};
-	//ADS后坐力结构体
+		//ADS后坐力结构体
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
 	FWeaponRecoilStruct ADSRecoilStruct = FWeaponRecoilStruct{
 		FVector(-0.25, 0.f, 0.3), //后座终止位置偏移
@@ -114,6 +114,7 @@ public:
 	}; 
 	FWeaponRecoilStruct* CurrentRecoilStruct = &DefaultRecoilStruct;
 	void UpdateRecoilEnd();
+	void UpdateRecoil(float DeltaTime);
 	UFUNCTION(BlueprintCallable)
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
@@ -123,8 +124,8 @@ public:
 	FRotator CurrentBobResultRot;
 	FRotator BobResultRot;
 	void UpdateBob();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 5;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 3;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 3;
 		//Idle晃动
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
 		//Walk晃动
@@ -174,11 +175,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateUp = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateDown = 15.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpTransitionTolerance = 0.7f; // 跳跃动画转换阶段时允许的误差范围，值越大转换越早
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpADSMultiplier = 0.3f; 
 	float* CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
 	UFUNCTION(BlueprintCallable) void StartJump();
 	UFUNCTION(BlueprintCallable) void MidAir();
 	UFUNCTION(BlueprintCallable) void EndJump();
-	void UpdateJumpState();
+	void UpdateJumpState(float Multiplier);
 	void UpdateJump(float DeltaTime);
 	// 侧头相关
 	FVector CurrentTiltOffset = FVector::ZeroVector;
@@ -200,7 +202,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") FRotator ADSBaseRotation = FRotator(0.f, 0.f, 0.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
-	UFUNCTION(BlueprintCallable) void EndADS(bool UseCurve = true);
+	UFUNCTION(BlueprintCallable) void EndADS();
 	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.2;
@@ -209,5 +211,5 @@ public:
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector Sight_RootOffset;
 	float ADSAlpha = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 15; //ADS插值速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 5.f; //ADS插值速率
 };
