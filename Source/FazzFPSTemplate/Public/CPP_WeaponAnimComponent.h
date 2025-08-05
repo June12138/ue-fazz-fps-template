@@ -54,7 +54,6 @@ public:
 	EStanceState CurrentStance = EStanceState::Default;
 	FVector DefaultBaseLocation;
 	FRotator DefaultBaseRotation;
-	FVector ADSBaseLocation;
 		// 奔跑基准参数
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector SprintBaseLocation = FVector(25, -1, -13);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(-19,-35,-24);
@@ -203,13 +202,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") UCurveFloat* ADSCurve;
 	UFUNCTION(BlueprintCallable) void StartADS();
 	UFUNCTION(BlueprintCallable) void EndADS();
-	FTransform SightRelativeTransform;
 	float CurrentADSTime = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSTime = 0.2;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSXOffset = 41;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float TargetADSXOffset = 41;
+	float CurrentADSXOffset = TargetADSXOffset;
+	UFUNCTION(BlueprintCallable) void SetSight(USceneComponent* SightToSet, float Offset, FRotator SightRotation);
 	// 准星位置修正
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
-	FVector Sight_RootOffset;
+	FVector TargetSightOffset;
+	FVector CurrentSightOffset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightOffsetInterpolationRate = 5.f;
 	float ADSAlpha = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 5.f; //ADS插值速率
 };

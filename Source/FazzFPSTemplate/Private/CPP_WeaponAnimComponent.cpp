@@ -10,7 +10,7 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	// bAutoActivate = true;
-	SetComponentTickEnabled(true);
+	//SetComponentTickEnabled(true);
 }
 
 // Called when the game starts
@@ -32,13 +32,21 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 		DefaultBaseRotation = WeaponRoot->GetRelativeRotation();
 		CurrentBaseRotation = DefaultBaseRotation;
 		// 设置ADS基准位置
-		SightRelativeTransform = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), CameraRoot->GetComponentTransform());
-		ADSBaseLocation = DefaultBaseLocation - SightRelativeTransform.GetLocation() + FVector(ADSXOffset, 0.f, 0.f);
-		Sight_RootOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
+		SetSight(SightToSet, TargetADSXOffset, ADSBaseRotation);
+		// 设置摄像机初始位置, 用于计算侧头偏移
 		CamInitialLocation = CameraRoot->GetRelativeLocation();
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
+	}
+}
+void UCPP_WeaponAnimComponent::SetSight(USceneComponent* SightToSet, float Offset, FRotator SightRotation){
+	Sight = SightToSet;
+	TargetADSXOffset = Offset;
+	if (WeaponRoot && CameraRoot && Sight) {
+		// 设置ADS基准位置
+		TargetSightOffset = UKismetMathLibrary::MakeRelativeTransform(Sight->GetComponentTransform(), WeaponRoot->GetComponentTransform()).GetLocation();
+		ADSBaseRotation = SightRotation;
 	}
 }
 void UCPP_WeaponAnimComponent::SetInputVector(FVector Vector)
@@ -217,6 +225,8 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime)
 {
 	// 根据曲线和时间计算ADS动画的插值
+	CurrentSightOffset = FMath::Lerp(CurrentSightOffset, TargetSightOffset, SqrtAlpha(DeltaTime, SightOffsetInterpolationRate));
+	CurrentADSXOffset = FMath::Lerp(CurrentADSXOffset, TargetADSXOffset, SqrtAlpha(DeltaTime, SightOffsetInterpolationRate));
 	if (PlayingADSAnimation && ADSCurve) {
 		if (ToADS) {
 			CurrentADSTime = FMath::Clamp(CurrentADSTime + DeltaTime, 0.f, ADSTime);
@@ -236,8 +246,8 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
 	}
 	// 根据TotalOffset和TotalRotationOffset预测结算后的准星的相对位置
-	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(Sight_RootOffset));
-	FVector PredictedDeviation = PredictedSightLocation - FVector(ADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset - FVector(0.f, 0.f, CurrentJumpOffset);
+	FVector PredictedSightLocation = CurrentBaseLocation + TotalOffset + CurrentBaseRotation.RotateVector(TotalRotationOffset.RotateVector(CurrentSightOffset));
+	FVector PredictedDeviation = PredictedSightLocation - FVector(CurrentADSXOffset, 0.f, 0.f) - CurrentRecoilOffset - CurrentRecoilGradualOffset - FVector(0.f, 0.f, CurrentJumpOffset);
 	TargetADSCorrection = -1 * PredictedDeviation * ADSAlpha;
 }
 void UCPP_WeaponAnimComponent::UpdateMovementOffset()
