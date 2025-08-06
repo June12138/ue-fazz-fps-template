@@ -406,8 +406,8 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
 		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
 		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
-		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate));
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
 			IsPlayingRecoilAnim = false;
