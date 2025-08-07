@@ -35,6 +35,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* Sight = nullptr;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Roots") USceneComponent* CameraRoot = nullptr;
 	UFUNCTION(BlueprintCallable) void Init(USceneComponent* WeaponRootToSet, USceneComponent* SightToSet, USceneComponent* CameraRootToSet);
+	APlayerController* Controller = nullptr;
+	void TrySetController();
 	FVector CamInitialLocation;
 	void UpdateSettings();
 	//设置玩家输入数据
@@ -78,6 +80,7 @@ public:
 	//后坐力相关
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //后坐力动画时间
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //后坐力震动
 	float CurrentRecoilTime = 0.0f;
 		//后坐力位置偏移
 	FVector RecoilTargetOffset;

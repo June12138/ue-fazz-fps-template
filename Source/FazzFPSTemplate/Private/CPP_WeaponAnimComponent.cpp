@@ -20,6 +20,14 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 	// ...
 }
 
+void UCPP_WeaponAnimComponent::TrySetController(){
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (OwnerPawn)
+	{
+	    Controller = Cast<APlayerController>(OwnerPawn->GetController()); // 获取玩家控制器
+	}
+}
+
 void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComponent *SightToSet, USceneComponent *CameraRootToSet)
 {
 	WeaponRoot = WeaponRootToSet;
@@ -38,6 +46,11 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init failed"));
+	}
+	TrySetController();
+	if (!Controller)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Weapon Anim Component: Player Controller init failed!"));
 	}
 }
 void UCPP_WeaponAnimComponent::SetSight(USceneComponent* SightToSet, float Offset, FRotator SightRotation){
@@ -156,18 +169,13 @@ void UCPP_WeaponAnimComponent::StartRecoilAnim()
 	UpdateRecoilEnd();
 	CurrentRecoilTime = 0.f;
 	IsPlayingRecoilAnim = true;
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (OwnerPawn)
-	{
-	    APlayerController* PlayerController = Cast<APlayerController>(OwnerPawn->GetController());
-	    if (PlayerController)
-	    {
-	        if (PlayerController->PlayerCameraManager && CurrentRecoilStruct->RecoilCameraShakeClass)
-	        {
-	            PlayerController->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct->RecoilCameraShakeClass, 1.f);
-				//UE_LOG(LogTemp, Warning, TEXT("Executing Cam Shake"));
-	        }
-	    }
+	if (Controller){
+		if (CurrentRecoilStruct->RecoilCameraShakeClass){
+			Controller->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct->RecoilCameraShakeClass, 1.f);
+		}
+		if (RecoilForceFeedbackEffect){
+			Controller->ClientPlayForceFeedback(RecoilForceFeedbackEffect);
+		}
 	}
 }
 
@@ -217,8 +225,8 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
 	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
 	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
-	float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw + Noise;
-	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier)) * CurrentBob->BobPitch + Noise;
+	float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw * multiplier + Noise;
+	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier)) * CurrentBob->BobPitch * multiplier + Noise;
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }
