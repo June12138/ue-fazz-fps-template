@@ -9,14 +9,37 @@
 UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	// bAutoActivate = true;
-	//SetComponentTickEnabled(true);
+	//Base模块默认值
+	BaseTransforms.Add("IdleBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
+	BaseTransforms.Add("ADSBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
+	BaseTransforms.Add("SprintBase", FTransform(FRotator(-19,-35,-24), FVector(25, -1, -13), FVector(1.f, 1.f, 1.f)));
+	BaseTransforms.Add("CrouchBase", FTransform(FRotator(-2, -14, 3), FVector(25, 9, -8), FVector(1.f, 1.f, 1.f)));
+	//Bob模块默认值
+	BobStructs.Add("IdleBob", FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5});
+	BobStructs.Add("WalkBob", FWeaponBobStruct{4, 3, 3, 3, 3, 0.7});
+	BobStructs.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 0.7});
+	BobStructs.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15});
+	BobStructs.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15});
 }
 
 // Called when the game starts
 void UCPP_WeaponAnimComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	//Base模块初始化
+	if (BaseTransforms[DefaultBase].IsValid()){
+		TargetBaseTransform = &BaseTransforms[DefaultBase];
+	}else{
+		ShouldPlayAnimation = false;
+		UE_LOG(LogTemp, Error, TEXT("Base defaults not found, check settings under Base"));
+	}
+	//Bob模块初始化
+	CurrentStaticBob = &BobStructs[DefaultBobStatic];
+	CurrentMovementBob = &BobStructs[DefaultBobMovement];
+	if (!(CurrentStaticBob && CurrentMovementBob)) {
+		ShouldPlayAnimation = false;
+		UE_LOG(LogTemp, Error, TEXT("Bob defaults not found, check settings under Bob"));
+	}
 	// ...
 }
 
@@ -35,10 +58,12 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 	CameraRoot = CameraRootToSet;
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot && CameraRoot && Sight) {
-		DefaultBaseLocation = WeaponRoot->GetRelativeLocation();
-		CurrentBaseLocation = DefaultBaseLocation;
-		DefaultBaseRotation = WeaponRoot->GetRelativeRotation();
-		CurrentBaseRotation = DefaultBaseRotation;
+		//遍历INitializeBase中的每一项
+		for (FName& InitializeBase : InitializeBases) {
+		    if (BaseTransforms[InitializeBase].IsValid()){
+				BaseTransforms[InitializeBase] = WeaponRoot->GetRelativeTransform();
+			}
+		}
 		// 设置ADS基准位置
 		SetSight(SightToSet, TargetADSXOffset, ADSBaseRotation);
 		// 设置摄像机初始位置, 用于计算侧头偏移
@@ -109,8 +134,8 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateSettings();
 	ElapsedTime += DeltaTime;
 	// 更新基准位置和旋转
-	CurrentBaseLocation = FMath::Lerp(CurrentBaseLocation, *TargetBaseLocation, SqrtAlpha(DeltaTime, BaseLocationInterpolationRate));
-	CurrentBaseRotation = FMath::Lerp(CurrentBaseRotation, *TargetBaseRotation,	SqrtAlpha(DeltaTime, BaseRotationInterpolationRate));
+	CurrentBaseLocation = FMath::Lerp(CurrentBaseLocation, TargetBaseTransform->GetLocation(), SqrtAlpha(DeltaTime, BaseLocationInterpolationRate));
+	CurrentBaseRotation = FMath::Lerp(CurrentBaseRotation, TargetBaseTransform->GetRotation().Rotator(), SqrtAlpha(DeltaTime, BaseRotationInterpolationRate));
 	// 侧头处理
 	UpdateTilt(DeltaTime);
 	//UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
@@ -211,12 +236,13 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	// 根据移动状态设置参数
 	float multiplier = 1.f;
 	MoveSize = InputVector2D.Size();
+	multiplier *= CurrentBobMultiplier;
 	if (MoveSize > 0.01f)
 	{
 		multiplier = MoveSize;
-	}
-	if (CurrentStance == EStanceState::Crouch) {
-		multiplier *= CrouchMultiplier;
+		CurrentBob = CurrentMovementBob;
+	}else{
+		CurrentBob = CurrentStaticBob;
 	}
 	// 计算目标 Bob 位移
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
@@ -277,41 +303,31 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 	switch (CurrentStance)
 	{
 	case EStanceState::Default:
-		TargetBaseRotation = &DefaultBaseRotation;
-		TargetBaseLocation = &DefaultBaseLocation;
+	CurrentBobMultiplier = 1.f;
+		TargetBaseTransform = &BaseTransforms["IdleBase"];
 		CurrentRecoilStruct = &DefaultRecoilStruct;
-			if (MoveSize > 0.1f) {
-			CurrentBob = &WalkBob;
-			}	else {
-			CurrentBob = &IdleBob;
-		}
+		CurrentStaticBob = &BobStructs["IdleBob"];
+		CurrentMovementBob = &BobStructs["WalkBob"];
 		break;
 	case EStanceState::Sprint:
-		CurrentBob = &RunBob;
-		TargetBaseLocation = &SprintBaseLocation;
-		TargetBaseRotation = &SprintBaseRotation;
+		CurrentBobMultiplier = 1.f;
+		CurrentMovementBob = &BobStructs["RunBob"];
+		TargetBaseTransform = &BaseTransforms["SprintBase"];
 		break;
 	case EStanceState::Crouch:
-		TargetBaseLocation = &CrouchBaseLocation;
-		TargetBaseRotation = &CrouchBaseRotation;
-			if (MoveSize > 0.1f) {
-			CurrentBob = &WalkBob;
-			}	else {
-			CurrentBob = &IdleBob;
-		}
+		CurrentBobMultiplier = 0.7;
+		TargetBaseTransform = &BaseTransforms["CrouchBase"];
+		CurrentStaticBob = &BobStructs["IdleBob"];
+		CurrentMovementBob = &BobStructs["WalkBob"];
 		break;
 	}
 	// ADS
 	if (IsAiming || PlayingADSAnimation) {
 		CurrentSwayStruct = &ADSSway;
-		TargetBaseRotation = &ADSBaseRotation;
-		TargetBaseLocation = &DefaultBaseLocation;
+		TargetBaseTransform = &BaseTransforms["ADSBase"];
 		CurrentRecoilStruct = &ADSRecoilStruct;
-		if (MoveSize > 0.1f){
-			CurrentBob = &WalkBobADS;
-		}else{
-			CurrentBob = &IdleBobADS;
-		}
+		CurrentStaticBob = &BobStructs["IdleBobADS"];
+		CurrentMovementBob = &BobStructs["WalkBobADS"];
 	}
 }
 void UCPP_WeaponAnimComponent::StartJump()

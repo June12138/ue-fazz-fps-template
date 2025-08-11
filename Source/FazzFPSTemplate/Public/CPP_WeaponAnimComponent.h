@@ -53,12 +53,10 @@ public:
 		Sprint,
 		Crouch
 	};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TMap<FName, FTransform> BaseTransforms;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FName DefaultBase = "IdleBase"; //默认基准名
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TArray<FName> InitializeBases = {"IdleBase", "ADSBase"}; //在游戏开始时，将WeaponRoot的Transform赋值给这个Base
 	EStanceState CurrentStance = EStanceState::Default;
-	FVector DefaultBaseLocation;
-	FRotator DefaultBaseRotation;
-		// 奔跑基准参数
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector SprintBaseLocation = FVector(25, -1, -13);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator SprintBaseRotation = FRotator(-19,-35,-24);
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
 		// 下蹲基准参数
@@ -67,8 +65,7 @@ public:
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
 		//当前基准参数
-	FVector* TargetBaseLocation = &DefaultBaseLocation;
-	FRotator* TargetBaseRotation = &DefaultBaseRotation;
+	FTransform* TargetBaseTransform = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
@@ -128,18 +125,14 @@ public:
 	void UpdateBob();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 3;
-		//Idle晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBob = FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5};
-		//Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBob = FWeaponBobStruct{4, 3, 3, 3, 3, 0.7};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float CrouchMultiplier = 0.7; //下蹲时的晃动倍率
-		//Run晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct RunBob = FWeaponBobStruct{8, 3, 3, 3, 3, 0.7};
-		//ADS Idle
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct IdleBobADS = FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15};
-		//ADS Walk晃动
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") FWeaponBobStruct WalkBobADS = FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15};
-		FWeaponBobStruct* CurrentBob = &IdleBob;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") 
+	TMap<FName, FWeaponBobStruct> BobStructs;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobStatic = "IdleBob";
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobMovement = "WalkBob";
+	FWeaponBobStruct* CurrentStaticBob = nullptr;
+	FWeaponBobStruct* CurrentMovementBob = nullptr;
+	FWeaponBobStruct* CurrentBob = CurrentStaticBob;
+	float CurrentBobMultiplier = 1.f;
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
