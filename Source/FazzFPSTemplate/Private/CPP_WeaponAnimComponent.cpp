@@ -11,11 +11,10 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	//Base模块默认值
 	BaseStates.Add("IdleBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
-	BaseStates.Add("ADSBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
 	BaseStates.Add("SprintBase", FTransform(FRotator(-19,-35,-24), FVector(25, -1, -13), FVector(1.f, 1.f, 1.f)));
 	BaseStates.Add("CrouchBase", FTransform(FRotator(-2, -14, 3), FVector(25, 9, -8), FVector(1.f, 1.f, 1.f)));
 	//Recoil模块默认值
-	RecoilStates.Add("Default", FWeaponRecoilStruct{
+	RecoilStates.Add("DefaultRecoil", FWeaponRecoilStruct{
 		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
 		FVector(1.f,1.f,0.5), //后座随机偏移
 		FVector(1.f,0.f,0.f), //后座终止旋转偏移
@@ -25,7 +24,7 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 		2.f, //后座旋转随机偏移插值速率
 		5.f
 	});
-	RecoilStates.Add("ADS", FWeaponRecoilStruct{
+	RecoilStates.Add("ADSRecoil", FWeaponRecoilStruct{
 		FVector(-0.25, 0.f, 0.3), //后座终止位置偏移
 		FVector(0.1,0.05,0.f), //后座随机偏移
 		FVector(0.3,0.0,0.0), //后座终止旋转偏移
@@ -41,6 +40,9 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 	BobStates.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 0.7});
 	BobStates.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15});
 	BobStates.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15});
+	//Sway模块默认值
+	SwayStates.Add("DefaultSway",FWeaponSwayStruct{5, 15, 5, 15});
+	SwayStates.Add("ADSSway", FWeaponSwayStruct{3, 0.3, 3, 0.3});
 }
 
 // Called when the game starts
@@ -49,18 +51,14 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 	Super::BeginPlay();
 	//Base模块初始化
 	if (BaseStates[DefaultBase].IsValid()){
-		TargetBaseTransform = &BaseStates[DefaultBase];
+		TargetBaseTransform = BaseStates[DefaultBase];
 	}else{
 		ShouldPlayAnimation = false;
 		UE_LOG(LogTemp, Error, TEXT("Base default not found, check settings under Base"));
 	}
 	//Bob模块初始化
-	CurrentStaticBob = &BobStates[DefaultBobStatic];
-	CurrentMovementBob = &BobStates[DefaultBobMovement];
-	if (!(CurrentStaticBob && CurrentMovementBob)) {
-		ShouldPlayAnimation = false;
-		UE_LOG(LogTemp, Error, TEXT("Bob defaults not found, check settings under Bob"));
-	}
+	CurrentStaticBob = BobStates[DefaultBobStatic];
+	CurrentMovementBob = BobStates[DefaultBobMovement];
 	// ...
 }
 
@@ -155,8 +153,8 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateSettings();
 	ElapsedTime += DeltaTime;
 	// 更新基准位置和旋转
-	CurrentBaseLocation = FMath::Lerp(CurrentBaseLocation, TargetBaseTransform->GetLocation(), SqrtAlpha(DeltaTime, BaseLocationInterpolationRate));
-	CurrentBaseRotation = FMath::Lerp(CurrentBaseRotation, TargetBaseTransform->GetRotation().Rotator(), SqrtAlpha(DeltaTime, BaseRotationInterpolationRate));
+	CurrentBaseLocation = FMath::Lerp(CurrentBaseLocation, TargetBaseTransform.GetLocation(), SqrtAlpha(DeltaTime, BaseLocationInterpolationRate));
+	CurrentBaseRotation = FMath::Lerp(CurrentBaseRotation, TargetBaseTransform.GetRotation().Rotator(), SqrtAlpha(DeltaTime, BaseRotationInterpolationRate));
 	// 侧头处理
 	UpdateTilt(DeltaTime);
 	//UE_LOG(LogTemp, Warning, TEXT("CurrentTiltOffset: %s, CurrentTiltRoll: %f"), *CurrentTiltOffset.ToString(), CurrentTiltRoll);
@@ -206,8 +204,8 @@ void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UCPP_WeaponAnimComponent::UpdateRecoilEnd()
 {
-	RecoilTargetOffset = JitterVector(CurrentRecoilStruct->RecoilOffset, CurrentRecoilStruct->RecoilOffsetJitter);
-	RecoilRotationTargetOffset = JitterVector(CurrentRecoilStruct->RecoilRotationOffset, CurrentRecoilStruct->RecoilRotationOffsetJitter);
+	RecoilTargetOffset = JitterVector(CurrentRecoilStruct.RecoilOffset, CurrentRecoilStruct.RecoilOffsetJitter);
+	RecoilRotationTargetOffset = JitterVector(CurrentRecoilStruct.RecoilRotationOffset, CurrentRecoilStruct.RecoilRotationOffsetJitter);
 }
 
 void UCPP_WeaponAnimComponent::StartRecoilAnim()
@@ -216,8 +214,8 @@ void UCPP_WeaponAnimComponent::StartRecoilAnim()
 	CurrentRecoilTime = 0.f;
 	IsPlayingRecoilAnim = true;
 	if (Controller){
-		if (CurrentRecoilStruct->RecoilCameraShakeClass){
-			Controller->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct->RecoilCameraShakeClass, 1.f);
+		if (CurrentRecoilStruct.RecoilCameraShakeClass){
+			Controller->PlayerCameraManager->StartCameraShake(CurrentRecoilStruct.RecoilCameraShakeClass, 1.f);
 		}
 		if (RecoilForceFeedbackEffect){
 			Controller->ClientPlayForceFeedback(RecoilForceFeedbackEffect);
@@ -237,6 +235,7 @@ void UCPP_WeaponAnimComponent::StartADS()
 {
 	ToADS = true;
 	PlayingADSAnimation = true;
+	TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
 }
 
 void UCPP_WeaponAnimComponent::EndADS()
@@ -248,8 +247,8 @@ void UCPP_WeaponAnimComponent::EndADS()
 }
 void UCPP_WeaponAnimComponent::UpdateSway()
 {
-	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct->SwayYawMultiplier * -1, -CurrentSwayStruct->SwayYawMax / 2, CurrentSwayStruct->SwayYawMax / 2);
-	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct->SwayPitchMultiplier, -CurrentSwayStruct->SwayPitchMax / 2, CurrentSwayStruct->SwayPitchMax / 2);
+	float Yaw = FMath::Clamp(InputRotator.Yaw * CurrentSwayStruct.SwayYawMultiplier * -1, -CurrentSwayStruct.SwayYawMax / 2, CurrentSwayStruct.SwayYawMax / 2);
+	float Pitch = FMath::Clamp(InputRotator.Pitch * CurrentSwayStruct.SwayPitchMultiplier, -CurrentSwayStruct.SwayPitchMax / 2, CurrentSwayStruct.SwayPitchMax / 2);
 	TargetSway = FRotator(Pitch, Yaw, 0.f);
 }
 void UCPP_WeaponAnimComponent::UpdateBob()
@@ -266,14 +265,14 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 		CurrentBob = CurrentStaticBob;
 	}
 	// 计算目标 Bob 位移
-	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
-	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier) * multiplier;
-	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob->BobNoise * multiplier;
+	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
+	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier) * multiplier;
+	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob.BobNoise * multiplier;
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
-	float Z = HorizontalMultiplier * CurrentBob->BobLongitudeZ + Noise;
-	float Y = VerticalMultiplier * CurrentBob->BobLongitudeY + Noise;
-	float Yaw = FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier + PI * 0.25) * CurrentBob->BobYaw * multiplier + Noise;
-	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob->BobFrequencyMultiplier)) * CurrentBob->BobPitch * multiplier + Noise;
+	float Z = HorizontalMultiplier * CurrentBob.BobLongitudeZ + Noise;
+	float Y = VerticalMultiplier * CurrentBob.BobLongitudeY + Noise;
+	float Yaw = FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier + PI * 0.25) * CurrentBob.BobYaw * multiplier + Noise;
+	float Pitch = FMath::Abs(FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier)) * CurrentBob.BobPitch * multiplier + Noise;
 	BobResult = FVector(0.f, Y, Z);
 	BobResultRot = FRotator(Pitch, Yaw, 0.f);
 }
@@ -320,35 +319,38 @@ void UCPP_WeaponAnimComponent::UpdateMovementOffset()
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {
 	MoveSize = InputVector2D.Size();
-	CurrentSwayStruct = &DefaultSway;
+	// ADS
+	if (IsAiming || PlayingADSAnimation) {
+		TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
+		CurrentSwayStruct = SwayStates["ADSSway"];
+		CurrentRecoilStruct = RecoilStates["ADSRecoil"];
+		CurrentStaticBob = BobStates["IdleBobADS"];
+		CurrentMovementBob = BobStates["WalkBobADS"];
+		JumpMultiplier = 0.1f;
+		return;
+	}
+	JumpMultiplier = 1.f;
+	CurrentSwayStruct = SwayStates["DefaultSway"];
+	CurrentRecoilStruct = RecoilStates["DefaultRecoil"];
 	switch (CurrentStance)
 	{
 	case EStanceState::Default:
 	CurrentBobMultiplier = 1.f;
-		TargetBaseTransform = &BaseStates["IdleBase"];
-		CurrentRecoilStruct = &DefaultRecoilStruct;
-		CurrentStaticBob = &BobStates["IdleBob"];
-		CurrentMovementBob = &BobStates["WalkBob"];
+		TargetBaseTransform = BaseStates["IdleBase"];
+		CurrentStaticBob = BobStates["IdleBob"];
+		CurrentMovementBob = BobStates["WalkBob"];
 		break;
 	case EStanceState::Sprint:
 		CurrentBobMultiplier = 1.f;
-		CurrentMovementBob = &BobStates["RunBob"];
-		TargetBaseTransform = &BaseStates["SprintBase"];
+		CurrentMovementBob = BobStates["RunBob"];
+		TargetBaseTransform =BaseStates["SprintBase"];
 		break;
 	case EStanceState::Crouch:
 		CurrentBobMultiplier = 0.7;
-		TargetBaseTransform = &BaseStates["CrouchBase"];
-		CurrentStaticBob = &BobStates["IdleBob"];
-		CurrentMovementBob = &BobStates["WalkBob"];
+		TargetBaseTransform = BaseStates["CrouchBase"];
+		CurrentStaticBob = BobStates["IdleBob"];
+		CurrentMovementBob = BobStates["WalkBob"];
 		break;
-	}
-	// ADS
-	if (IsAiming || PlayingADSAnimation) {
-		CurrentSwayStruct = &ADSSway;
-		TargetBaseTransform = &BaseStates["ADSBase"];
-		CurrentRecoilStruct = &ADSRecoilStruct;
-		CurrentStaticBob = &BobStates["IdleBobADS"];
-		CurrentMovementBob = &BobStates["WalkBobADS"];
 	}
 }
 void UCPP_WeaponAnimComponent::StartJump()
@@ -370,15 +372,11 @@ void UCPP_WeaponAnimComponent::EndJump()
 	}
 }
 void UCPP_WeaponAnimComponent::UpdateJump(float DeltaTime){
-	float Multiplier = 1.f;
-	if (IsAiming || PlayingADSAnimation) {
-		Multiplier = JumpADSMultiplier;
-	}
-	UpdateJumpState(Multiplier);
-	CurrentJumpOffset = FMath::Lerp(CurrentJumpOffset, *TargetJumpOffset * Multiplier, SqrtAlpha(DeltaTime, *CurrentJumpInterpolationRate));
+	UpdateJumpState();
+	CurrentJumpOffset = FMath::Lerp(CurrentJumpOffset, *TargetJumpOffset * 	JumpMultiplier, SqrtAlpha(DeltaTime, *CurrentJumpInterpolationRate));
 }
 
-void UCPP_WeaponAnimComponent::UpdateJumpState(float Multiplier)
+void UCPP_WeaponAnimComponent::UpdateJumpState()
 {
 		switch (CurrentJumpState){
 			case EJumpState::Default:
@@ -388,7 +386,7 @@ void UCPP_WeaponAnimComponent::UpdateJumpState(float Multiplier)
 			case EJumpState::Start:
 				TargetJumpOffset = &JumpOffset;
 				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
-				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * Multiplier) < JumpTransitionTolerance) {
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * JumpMultiplier) < JumpTransitionTolerance) {
 					CurrentJumpState = EJumpState::MidAir;
 				}
 				break;
@@ -399,7 +397,7 @@ void UCPP_WeaponAnimComponent::UpdateJumpState(float Multiplier)
 			case EJumpState::Land:
 				TargetJumpOffset = &LandOffset;
 				CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateDown;
-				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * Multiplier) < JumpTransitionTolerance) {
+				if (FMath::Abs(CurrentJumpOffset - *TargetJumpOffset * JumpMultiplier) < JumpTransitionTolerance) {
 					CurrentJumpState = EJumpState::Default;
 		}
 	}
@@ -451,8 +449,8 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 		CurrentRecoilOffset = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilTargetOffset, alpha);
 		FVector RotationVector = FMath::Lerp(FVector(0.f, 0.f, 0.f), RecoilRotationTargetOffset, alpha);
 		RecoilRotationResult = FRotator(RotationVector.X, RotationVector.Y, RotationVector.Z);
-		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct->RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate));
-		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct->RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetInterpolationRate));
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, CurrentRecoilStruct.RecoilGradualOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetInterpolationRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, CurrentRecoilStruct.RecoilGradualRotationOffset, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetInterpolationRate));
 		if (CurrentRecoilTime == RecoilAnimTime)
 		{
 			IsPlayingRecoilAnim = false;
@@ -462,7 +460,7 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 		if (!RecoilCurve){
 			UE_LOG(LogTemp, Error, TEXT("RecoilCurve nullptr"));
 		}
-		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
-		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct->RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetRecoverRate));
+		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetRecoverRate));
 	}
 }

@@ -65,20 +65,19 @@ public:
 	UFUNCTION(BlueprintCallable) void EndSprint();
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
-		//当前基准参数
-	FTransform* TargetBaseTransform = nullptr;
+	//当前基准参数
+	FTransform TargetBaseTransform;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
 	//后坐力相关
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") TMap<FName, FWeaponRecoilStruct> RecoilStates;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //后坐力动画时间
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //后坐力震动
 	float CurrentRecoilTime = 0.0f;
-		//后坐力位置偏移
+	//后坐力位置偏移
 	FVector RecoilTargetOffset;
 	FVector GradualRecoilOffsetTarget;
 	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADS状态下这个变量会影响到准星偏移。万一要用这个数据读取准星，让蓝图能获取到当前后坐力偏移
@@ -86,31 +85,7 @@ public:
 	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //后坐力渐进偏移
 	FVector RecoilRotationTargetOffset; //后坐力旋转偏移
 	FRotator CurrentRecoilGradualRotOffset; //后坐力旋转渐进偏移
-		//后坐力结构体
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
-	FWeaponRecoilStruct DefaultRecoilStruct = FWeaponRecoilStruct{
-		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
-		FVector(1.f,1.f,0.5), //后座随机偏移
-		FVector(1.f,0.f,0.f), //后座终止旋转偏移
-		FVector(1.f,2.f,1.f), //后座随机旋转偏移
-		FVector(-3.f,0.f,3.f), //后座旋转随机偏移 
-		FRotator(6,0.f,0.f), //后座旋转渐进偏移 
-		2.f, //后座旋转随机偏移插值速率
-		5.f
-	};
-		//ADS后坐力结构体
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Recoil") 
-	FWeaponRecoilStruct ADSRecoilStruct = FWeaponRecoilStruct{
-		FVector(-0.25, 0.f, 0.3), //后座终止位置偏移
-		FVector(0.1,0.05,0.f), //后座随机偏移
-		FVector(0.3,0.0,0.0), //后座终止旋转偏移
-		FVector(0.2,0.2,5.f), //后座随机旋转偏移
-		FVector(0.f,0.f,3.f),//后座旋转随机偏移 
-		FRotator(4.f,0.f,0.f), //后座旋转渐进偏移 
-		2.f, //后座旋转随机偏移插值速率
-		5.f
-	}; 
-	FWeaponRecoilStruct* CurrentRecoilStruct = &DefaultRecoilStruct;
+	FWeaponRecoilStruct CurrentRecoilStruct;
 	void UpdateRecoilEnd();
 	void UpdateRecoil(float DeltaTime);
 	UFUNCTION(BlueprintCallable)
@@ -128,19 +103,16 @@ public:
 	TMap<FName, FWeaponBobStruct> BobStates;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobStatic = "IdleBob";
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobMovement = "WalkBob";
-	FWeaponBobStruct* CurrentStaticBob = nullptr;
-	FWeaponBobStruct* CurrentMovementBob = nullptr;
-	FWeaponBobStruct* CurrentBob = CurrentStaticBob;
+	FWeaponBobStruct CurrentStaticBob;
+	FWeaponBobStruct CurrentMovementBob;
+	FWeaponBobStruct CurrentBob;
 	float CurrentBobMultiplier = 1.f;
 	// Sway相关
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
-		// 默认姿态下sway
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway")FWeaponSwayStruct DefaultSway = FWeaponSwayStruct{5, 15, 5, 15};
-	FWeaponSwayStruct* CurrentSwayStruct = &DefaultSway;
-		// 开镜状态下sway
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway")FWeaponSwayStruct ADSSway = FWeaponSwayStruct{3, 0.3, 3, 0.3};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") TMap<FName, FWeaponSwayStruct> SwayStates;
+	FWeaponSwayStruct CurrentSwayStruct;
 	void UpdateSway();
 	// MovementOffset相关
 	FVector CurrentMovementOffset = FVector::ZeroVector;
@@ -169,12 +141,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateUp = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateDown = 15.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpTransitionTolerance = 0.7f; // 跳跃动画转换阶段时允许的误差范围，值越大转换越早
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpADSMultiplier = 0.3f; 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpMultiplier = 1.f; 
 	float* CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
 	UFUNCTION(BlueprintCallable) void StartJump();
 	UFUNCTION(BlueprintCallable) void MidAir();
 	UFUNCTION(BlueprintCallable) void EndJump();
-	void UpdateJumpState(float Multiplier);
+	void UpdateJumpState();
 	void UpdateJump(float DeltaTime);
 	// 侧头相关
 	FVector CurrentTiltOffset = FVector::ZeroVector;
