@@ -46,6 +46,10 @@ public:
 	FVector InputVector;
 	FRotator InputRotator;
 	float MoveSize;
+	//结算
+	FVector Result;
+	FRotator RotationResult;
+	FVector JitterVector(FVector Input, FVector Jitter);
 	//基准
 	enum class EStanceState
 	{
@@ -53,15 +57,12 @@ public:
 		Sprint,
 		Crouch
 	};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TMap<FName, FTransform> BaseTransforms;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TMap<FName, FTransform> BaseStates;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FName DefaultBase = "IdleBase"; //默认基准名
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TArray<FName> InitializeBases = {"IdleBase", "ADSBase"}; //在游戏开始时，将WeaponRoot的Transform赋值给这个Base
 	EStanceState CurrentStance = EStanceState::Default;
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
-		// 下蹲基准参数
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FVector CrouchBaseLocation = FVector(25,9,-8);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FRotator CrouchBaseRotation = FRotator(-2,3,-14);
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
 		//当前基准参数
@@ -70,11 +71,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
-	//结算
-	FVector Result;
-	FRotator RotationResult;
-	FVector JitterVector(FVector Input, FVector Jitter);
 	//后坐力相关
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") TMap<FName, FWeaponRecoilStruct> RecoilStates;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //后坐力动画时间
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //后坐力震动
@@ -126,7 +125,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobInterpolationRate = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobRotationInterpolationRate = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") 
-	TMap<FName, FWeaponBobStruct> BobStructs;
+	TMap<FName, FWeaponBobStruct> BobStates;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobStatic = "IdleBob";
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob")  FName DefaultBobMovement = "WalkBob";
 	FWeaponBobStruct* CurrentStaticBob = nullptr;

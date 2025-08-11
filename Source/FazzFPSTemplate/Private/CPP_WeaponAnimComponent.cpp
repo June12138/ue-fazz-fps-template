@@ -10,16 +10,37 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	//Base模块默认值
-	BaseTransforms.Add("IdleBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
-	BaseTransforms.Add("ADSBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
-	BaseTransforms.Add("SprintBase", FTransform(FRotator(-19,-35,-24), FVector(25, -1, -13), FVector(1.f, 1.f, 1.f)));
-	BaseTransforms.Add("CrouchBase", FTransform(FRotator(-2, -14, 3), FVector(25, 9, -8), FVector(1.f, 1.f, 1.f)));
+	BaseStates.Add("IdleBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
+	BaseStates.Add("ADSBase", FTransform(FRotator(0.f, 0.f, 0.f), FVector(0.f, 0.f, 0.f), FVector(1.f, 1.f, 1.f)));
+	BaseStates.Add("SprintBase", FTransform(FRotator(-19,-35,-24), FVector(25, -1, -13), FVector(1.f, 1.f, 1.f)));
+	BaseStates.Add("CrouchBase", FTransform(FRotator(-2, -14, 3), FVector(25, 9, -8), FVector(1.f, 1.f, 1.f)));
+	//Recoil模块默认值
+	RecoilStates.Add("Default", FWeaponRecoilStruct{
+		FVector(-1.f, 0.f, 0.f), //后座终止位置偏移
+		FVector(1.f,1.f,0.5), //后座随机偏移
+		FVector(1.f,0.f,0.f), //后座终止旋转偏移
+		FVector(1.f,2.f,1.f), //后座随机旋转偏移
+		FVector(-3.f,0.f,3.f), //后座旋转随机偏移 
+		FRotator(6,0.f,0.f), //后座旋转渐进偏移 
+		2.f, //后座旋转随机偏移插值速率
+		5.f
+	});
+	RecoilStates.Add("ADS", FWeaponRecoilStruct{
+		FVector(-0.25, 0.f, 0.3), //后座终止位置偏移
+		FVector(0.1,0.05,0.f), //后座随机偏移
+		FVector(0.3,0.0,0.0), //后座终止旋转偏移
+		FVector(0.2,0.2,5.f), //后座随机旋转偏移
+		FVector(0.f,0.f,3.f),//后座旋转随机偏移 
+		FRotator(4.f,0.f,0.f), //后座旋转渐进偏移 
+		2.f, //后座旋转随机偏移插值速率
+		5.f
+	});
 	//Bob模块默认值
-	BobStructs.Add("IdleBob", FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5});
-	BobStructs.Add("WalkBob", FWeaponBobStruct{4, 3, 3, 3, 3, 0.7});
-	BobStructs.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 0.7});
-	BobStructs.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15});
-	BobStructs.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15});
+	BobStates.Add("IdleBob", FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5});
+	BobStates.Add("WalkBob", FWeaponBobStruct{4, 3, 3, 3, 3, 0.7});
+	BobStates.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 0.7});
+	BobStates.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15});
+	BobStates.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15});
 }
 
 // Called when the game starts
@@ -27,15 +48,15 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	//Base模块初始化
-	if (BaseTransforms[DefaultBase].IsValid()){
-		TargetBaseTransform = &BaseTransforms[DefaultBase];
+	if (BaseStates[DefaultBase].IsValid()){
+		TargetBaseTransform = &BaseStates[DefaultBase];
 	}else{
 		ShouldPlayAnimation = false;
-		UE_LOG(LogTemp, Error, TEXT("Base defaults not found, check settings under Base"));
+		UE_LOG(LogTemp, Error, TEXT("Base default not found, check settings under Base"));
 	}
 	//Bob模块初始化
-	CurrentStaticBob = &BobStructs[DefaultBobStatic];
-	CurrentMovementBob = &BobStructs[DefaultBobMovement];
+	CurrentStaticBob = &BobStates[DefaultBobStatic];
+	CurrentMovementBob = &BobStates[DefaultBobMovement];
 	if (!(CurrentStaticBob && CurrentMovementBob)) {
 		ShouldPlayAnimation = false;
 		UE_LOG(LogTemp, Error, TEXT("Bob defaults not found, check settings under Bob"));
@@ -58,10 +79,10 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 	CameraRoot = CameraRootToSet;
 	CurrentBobResult = FVector::ZeroVector;
 	if (WeaponRoot && CameraRoot && Sight) {
-		//遍历INitializeBase中的每一项
+		//遍历InitializeBases中的每一项并设置为WeaponRoot的相对变换
 		for (FName& InitializeBase : InitializeBases) {
-		    if (BaseTransforms[InitializeBase].IsValid()){
-				BaseTransforms[InitializeBase] = WeaponRoot->GetRelativeTransform();
+		    if (BaseStates[InitializeBase].IsValid()){
+				BaseStates[InitializeBase] = WeaponRoot->GetRelativeTransform();
 			}
 		}
 		// 设置ADS基准位置
@@ -304,30 +325,30 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 	{
 	case EStanceState::Default:
 	CurrentBobMultiplier = 1.f;
-		TargetBaseTransform = &BaseTransforms["IdleBase"];
+		TargetBaseTransform = &BaseStates["IdleBase"];
 		CurrentRecoilStruct = &DefaultRecoilStruct;
-		CurrentStaticBob = &BobStructs["IdleBob"];
-		CurrentMovementBob = &BobStructs["WalkBob"];
+		CurrentStaticBob = &BobStates["IdleBob"];
+		CurrentMovementBob = &BobStates["WalkBob"];
 		break;
 	case EStanceState::Sprint:
 		CurrentBobMultiplier = 1.f;
-		CurrentMovementBob = &BobStructs["RunBob"];
-		TargetBaseTransform = &BaseTransforms["SprintBase"];
+		CurrentMovementBob = &BobStates["RunBob"];
+		TargetBaseTransform = &BaseStates["SprintBase"];
 		break;
 	case EStanceState::Crouch:
 		CurrentBobMultiplier = 0.7;
-		TargetBaseTransform = &BaseTransforms["CrouchBase"];
-		CurrentStaticBob = &BobStructs["IdleBob"];
-		CurrentMovementBob = &BobStructs["WalkBob"];
+		TargetBaseTransform = &BaseStates["CrouchBase"];
+		CurrentStaticBob = &BobStates["IdleBob"];
+		CurrentMovementBob = &BobStates["WalkBob"];
 		break;
 	}
 	// ADS
 	if (IsAiming || PlayingADSAnimation) {
 		CurrentSwayStruct = &ADSSway;
-		TargetBaseTransform = &BaseTransforms["ADSBase"];
+		TargetBaseTransform = &BaseStates["ADSBase"];
 		CurrentRecoilStruct = &ADSRecoilStruct;
-		CurrentStaticBob = &BobStructs["IdleBobADS"];
-		CurrentMovementBob = &BobStructs["WalkBobADS"];
+		CurrentStaticBob = &BobStates["IdleBobADS"];
+		CurrentMovementBob = &BobStates["WalkBobADS"];
 	}
 }
 void UCPP_WeaponAnimComponent::StartJump()
