@@ -77,6 +77,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //后坐力动画时间
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// 后坐力曲线
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //后坐力震动
+	FName DefaultRecoil = "DefaultRecoil";
+	FWeaponRecoilStruct CurrentRecoilStruct;
 	float CurrentRecoilTime = 0.0f;
 		//后坐力位置偏移
 	FVector RecoilTargetOffset;
@@ -86,7 +88,6 @@ public:
 	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //后坐力渐进偏移
 	FVector RecoilRotationTargetOffset; //后坐力旋转偏移
 	FRotator CurrentRecoilGradualRotOffset; //后坐力旋转渐进偏移
-	FWeaponRecoilStruct CurrentRecoilStruct;
 	void UpdateRecoilEnd();
 	void UpdateRecoil(float DeltaTime);
 	UFUNCTION(BlueprintCallable)
@@ -116,6 +117,7 @@ public:
 	FRotator TargetSway = FRotator::ZeroRotator;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") TMap<FName, FWeaponSwayStruct> SwayStates;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") FName DefaultSway = "DefaultSway";
 	FWeaponSwayStruct CurrentSwayStruct;
 	UFUNCTION(BlueprintCallable) void SetSway(FName SwayName);
 	void UpdateSway();
