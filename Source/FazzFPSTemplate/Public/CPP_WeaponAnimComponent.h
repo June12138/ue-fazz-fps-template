@@ -108,7 +108,7 @@ public:
 	FWeaponBobStruct CurrentStaticBob;
 	FWeaponBobStruct CurrentMovementBob;
 	FWeaponBobStruct CurrentBob;
-	float CurrentBobMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobMultiplier = 1.f;
 	UFUNCTION(BlueprintCallable) void SetStaticBob(FName BobName);
 	UFUNCTION(BlueprintCallable) void SetMovementBob(FName BobName);
 	// Sway相关

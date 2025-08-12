@@ -263,7 +263,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	// 根据移动状态设置参数
 	float multiplier = 1.f;
 	MoveSize = InputVector2D.Size();
-	multiplier *= CurrentBobMultiplier;
+	multiplier *= BobMultiplier;
 	if (MoveSize > 0.01f)
 	{
 		multiplier = MoveSize;
@@ -325,37 +325,36 @@ void UCPP_WeaponAnimComponent::UpdateMovementOffset()
 }
 void UCPP_WeaponAnimComponent::UpdateSettings()
 {
-	MoveSize = InputVector2D.Size();
 	// ADS
 	if (IsAiming || PlayingADSAnimation) {
 		TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
-		CurrentSwayStruct = SwayStates["ADSSway"];
-		CurrentRecoilStruct = RecoilStates["ADSRecoil"];
-		CurrentStaticBob = BobStates["IdleBobADS"];
-		CurrentMovementBob = BobStates["WalkBobADS"];
+		SetSway("ADSSway");
+		SetRecoil("ADSRecoil");
+		SetStaticBob("IdleBobADS");
+		SetMovementBob("WalkBobADS");
 		JumpMultiplier = 0.1f;
 		return;
 	}
 	JumpMultiplier = 1.f;
-	CurrentSwayStruct = SwayStates["DefaultSway"];
-	CurrentRecoilStruct = RecoilStates["DefaultRecoil"];
+	SetSway("DefaultSway");
+	SetRecoil("DefaultRecoil");
 	switch (CurrentStance)
 	{
 	case EStanceState::Default:
-		CurrentBobMultiplier = 1.f;
-		CurrentStaticBob = BobStates["IdleBob"];
-		CurrentMovementBob = BobStates["WalkBob"];
+		BobMultiplier = 1.f;
+		SetStaticBob("IdleBob");
+		SetMovementBob("WalkBob");
 		SetBase("IdleBase");
 		break;
 	case EStanceState::Sprint:
-		CurrentBobMultiplier = 1.f;
-		CurrentMovementBob = BobStates["RunBob"];
+		BobMultiplier = 1.f;
+		SetMovementBob("RunBob");
 		SetBase("SprintBase");
 		break;
 	case EStanceState::Crouch:
-		CurrentBobMultiplier = 0.7;
-		CurrentStaticBob = BobStates["IdleBob"];
-		CurrentMovementBob = BobStates["WalkBob"];
+		BobMultiplier = 0.7;
+		SetStaticBob("IdleBob");
+		SetMovementBob("WalkBob");
 		SetBase("CrouchBase");
 		break;
 	}
@@ -474,6 +473,9 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 
 void UCPP_WeaponAnimComponent::SetBase(FName BaseName){
 	TargetBaseTransform = BaseStates[BaseName];
+	if (IsAiming || PlayingADSAnimation){
+		TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
+	}
 }
 
 void UCPP_WeaponAnimComponent::SetRecoil(FName RecoilName){
@@ -481,11 +483,11 @@ void UCPP_WeaponAnimComponent::SetRecoil(FName RecoilName){
 }
 
 void UCPP_WeaponAnimComponent::SetStaticBob(FName BobName){
-	CurrentMovementBob = BobStates[BobName];
+	CurrentStaticBob = BobStates[BobName];
 }
 
 void UCPP_WeaponAnimComponent::SetMovementBob(FName BobName){
-	CurrentStaticBob = BobStates[BobName];
+	CurrentMovementBob = BobStates[BobName];
 }
 
 void UCPP_WeaponAnimComponent::SetSway(FName SwayName){
