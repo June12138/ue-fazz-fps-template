@@ -39,18 +39,18 @@ public:
 	void TrySetController();
 	FVector CamInitialLocation;
 	void UpdateSettings();
-	//ÉèÖÃÍæ¼ÒÊäÈëÊı¾İ
+	//è®¾ç½®ç©å®¶è¾“å…¥æ•°æ®
 	UFUNCTION(BlueprintCallable) void SetInputVector(FVector Vector);
 	UFUNCTION(BlueprintCallable) void SetInputRotator(FRotator Rotator);
 	FVector2D InputVector2D;
 	FVector InputVector;
 	FRotator InputRotator;
 	float MoveSize;
-	//½áËã
+	//ç»“ç®—
 	FVector Result;
 	FRotator RotationResult;
 	FVector JitterVector(FVector Input, FVector Jitter);
-	//»ù×¼
+	//åŸºå‡†
 	enum class EStanceState
 	{
 		Default,
@@ -58,40 +58,42 @@ public:
 		Crouch
 	};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TMap<FName, FTransform> BaseStates;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FName DefaultBase = "IdleBase"; //Ä¬ÈÏ»ù×¼Ãû
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TArray<FName> InitializeBases = {"IdleBase", "ADSBase"}; //ÔÚÓÎÏ·¿ªÊ¼Ê±£¬½«WeaponRootµÄTransform¸³Öµ¸øÕâ¸öBase
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FName DefaultBase = "IdleBase"; //é»˜è®¤åŸºå‡†å
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TArray<FName> InitializeBases = {"IdleBase"}; //åœ¨æ¸¸æˆå¼€å§‹æ—¶ï¼Œå°†WeaponRootçš„Transformèµ‹å€¼ç»™è¿™ä¸ªBase
 	EStanceState CurrentStance = EStanceState::Default;
 	UFUNCTION(BlueprintCallable) void StartSprint();
 	UFUNCTION(BlueprintCallable) void EndSprint();
 	UFUNCTION(BlueprintCallable) void StartCrouch();
 	UFUNCTION(BlueprintCallable) void EndCrouch();
-	//µ±Ç°»ù×¼²ÎÊı
+	//å½“å‰åŸºå‡†å‚æ•°
 	FTransform TargetBaseTransform;
+	UFUNCTION(BlueprintCallable) void SetBase(FName BaseName);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseLocationInterpolationRate = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") float BaseRotationInterpolationRate = 5.f;
 	FVector CurrentBaseLocation;
 	FRotator CurrentBaseRotation;
-	//ºó×øÁ¦Ïà¹Ø
+	//åååŠ›ç›¸å…³
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") TMap<FName, FWeaponRecoilStruct> RecoilStates;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //ºó×øÁ¦¶¯»­Ê±¼ä
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// ºó×øÁ¦ÇúÏß
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //ºó×øÁ¦Õğ¶¯
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") float RecoilAnimTime = 0.2f; //åååŠ›åŠ¨ç”»æ—¶é—´
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UCurveFloat* RecoilCurve;	// åååŠ›æ›²çº¿
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil") UForceFeedbackEffect* RecoilForceFeedbackEffect; //åååŠ›éœ‡åŠ¨
 	float CurrentRecoilTime = 0.0f;
-	//ºó×øÁ¦Î»ÖÃÆ«ÒÆ
+		//åååŠ›ä½ç½®åç§»
 	FVector RecoilTargetOffset;
 	FVector GradualRecoilOffsetTarget;
-	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADS×´Ì¬ÏÂÕâ¸ö±äÁ¿»áÓ°Ïìµ½×¼ĞÇÆ«ÒÆ¡£ÍòÒ»ÒªÓÃÕâ¸öÊı¾İ¶ÁÈ¡×¼ĞÇ£¬ÈÃÀ¶Í¼ÄÜ»ñÈ¡µ½µ±Ç°ºó×øÁ¦Æ«ÒÆ
-	FRotator RecoilRotationResult = FRotator::ZeroRotator; //ºó×øÁ¦Ğı×ªÆ«ÒÆ
-	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //ºó×øÁ¦½¥½øÆ«ÒÆ
-	FVector RecoilRotationTargetOffset; //ºó×øÁ¦Ğı×ªÆ«ÒÆ
-	FRotator CurrentRecoilGradualRotOffset; //ºó×øÁ¦Ğı×ª½¥½øÆ«ÒÆ
+	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilOffset; // ADSçŠ¶æ€ä¸‹è¿™ä¸ªå˜é‡ä¼šå½±å“åˆ°å‡†æ˜Ÿåç§»ã€‚ä¸‡ä¸€è¦ç”¨è¿™ä¸ªæ•°æ®è¯»å–å‡†æ˜Ÿï¼Œè®©è“å›¾èƒ½è·å–åˆ°å½“å‰åååŠ›åç§»
+	FRotator RecoilRotationResult = FRotator::ZeroRotator; //åååŠ›æ—‹è½¬åç§»
+	UPROPERTY(BlueprintReadOnly) FVector CurrentRecoilGradualOffset; //åååŠ›æ¸è¿›åç§»
+	FVector RecoilRotationTargetOffset; //åååŠ›æ—‹è½¬åç§»
+	FRotator CurrentRecoilGradualRotOffset; //åååŠ›æ—‹è½¬æ¸è¿›åç§»
 	FWeaponRecoilStruct CurrentRecoilStruct;
 	void UpdateRecoilEnd();
 	void UpdateRecoil(float DeltaTime);
 	UFUNCTION(BlueprintCallable)
 	void StartRecoilAnim();
 	bool IsPlayingRecoilAnim = false;
-	//ÎäÆ÷»Î¶¯Ïà¹Ø
+	UFUNCTION(BlueprintCallable) void SetRecoil(FName RecoilName);
+	//æ­¦å™¨æ™ƒåŠ¨ç›¸å…³
 	FVector CurrentBobResult;
 	FVector BobResult;
 	FRotator CurrentBobResultRot;
@@ -107,14 +109,17 @@ public:
 	FWeaponBobStruct CurrentMovementBob;
 	FWeaponBobStruct CurrentBob;
 	float CurrentBobMultiplier = 1.f;
-	// SwayÏà¹Ø
+	UFUNCTION(BlueprintCallable) void SetStaticBob(FName BobName);
+	UFUNCTION(BlueprintCallable) void SetMovementBob(FName BobName);
+	// Swayç›¸å…³
 	FRotator CurrentSway = FRotator::ZeroRotator;
 	FRotator TargetSway = FRotator::ZeroRotator;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") float SwayInterpolationRate = 5;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sway") TMap<FName, FWeaponSwayStruct> SwayStates;
 	FWeaponSwayStruct CurrentSwayStruct;
+	UFUNCTION(BlueprintCallable) void SetSway(FName SwayName);
 	void UpdateSway();
-	// MovementOffsetÏà¹Ø
+	// MovementOffsetç›¸å…³
 	FVector CurrentMovementOffset = FVector::ZeroVector;
 	FVector TargetMovementOffset = FVector::ZeroVector;
 	float CurrentMovementRotationOffset = 0.f;
@@ -123,7 +128,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") FVector MovementOffsetMax = FVector(2.f, 2.f, 5.f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MovementOffset") float MovementRotationOffsetMax = 5.f;
 	void UpdateMovementOffset();
-	// ÌøÔ¾Ïà¹Ø
+	// è·³è·ƒç›¸å…³
 	enum class EJumpState
 	{
 		Default,
@@ -140,7 +145,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float LandOffset = -3.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateUp = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpOffsetInterpolationRateDown = 15.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpTransitionTolerance = 0.7f; // ÌøÔ¾¶¯»­×ª»»½×¶ÎÊ±ÔÊĞíµÄÎó²î·¶Î§£¬ÖµÔ½´ó×ª»»Ô½Ôç
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpTransitionTolerance = 0.7f; // è·³è·ƒåŠ¨ç”»è½¬æ¢é˜¶æ®µæ—¶å…è®¸çš„è¯¯å·®èŒƒå›´ï¼Œå€¼è¶Šå¤§è½¬æ¢è¶Šæ—©
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump") float JumpMultiplier = 1.f; 
 	float* CurrentJumpInterpolationRate = &JumpOffsetInterpolationRateUp;
 	UFUNCTION(BlueprintCallable) void StartJump();
@@ -148,17 +153,17 @@ public:
 	UFUNCTION(BlueprintCallable) void EndJump();
 	void UpdateJumpState();
 	void UpdateJump(float DeltaTime);
-	// ²àÍ·Ïà¹Ø
+	// ä¾§å¤´ç›¸å…³
 	FVector CurrentTiltOffset = FVector::ZeroVector;
 	UPROPERTY(BlueprintReadonly) float CurrentTiltRoll = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltInterpolationRate = 5.f; //²àÍ·²åÖµËÙÂÊ
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetLeft = FVector(0.f, -20.f, 0.f); //×ó²àÍ·Æ«ÒÆ
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetRight = FVector(0.f, 20.f, 0.f); //ÓÒ²àÍ·Æ«ÒÆ
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltInterpolationRate = 5.f; //ä¾§å¤´æ’å€¼é€Ÿç‡
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetLeft = FVector(0.f, -20.f, 0.f); //å·¦ä¾§å¤´åç§»
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") FVector TiltOffsetRight = FVector(0.f, 20.f, 0.f); //å³ä¾§å¤´åç§»
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tilt") float TiltRoll = 15.f;
-	UPROPERTY(BlueprintReadonly) int TiltDirection = 0; // -1Îª×ó²àÍ·£¬1ÎªÓÒ²àÍ·£¬0ÎªÎŞ²àÍ·
+	UPROPERTY(BlueprintReadonly) int TiltDirection = 0; // -1ä¸ºå·¦ä¾§å¤´ï¼Œ1ä¸ºå³ä¾§å¤´ï¼Œ0ä¸ºæ— ä¾§å¤´
 	UFUNCTION(BlueprintCallable) void SetTilt(int Direction);
 	void UpdateTilt(float DeltaTime);
-	// ADSÏà¹Ø
+	// ADSç›¸å…³
 	bool ToADS = false;
 	bool PlayingADSAnimation = false;
 	bool IsAiming = false;
@@ -174,11 +179,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float TargetADSXOffset = 41;
 	float CurrentADSXOffset = TargetADSXOffset;
 	UFUNCTION(BlueprintCallable) void SetSight(USceneComponent* SightToSet, float Offset, FRotator SightRotation);
-	// ×¼ĞÇÎ»ÖÃĞŞÕı
+	// å‡†æ˜Ÿä½ç½®ä¿®æ­£
 	void ADSCorrection(FVector TotalOffset, FRotator TotalRotationOffset, float DeltaTime);
 	FVector TargetSightOffset;
 	FVector CurrentSightOffset;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float SightOffsetInterpolationRate = 5.f;
 	float ADSAlpha = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 5.f; //ADS²åÖµËÙÂÊ
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS") float ADSInterpolationRate = 5.f; //ADSæ’å€¼é€Ÿç‡
 };

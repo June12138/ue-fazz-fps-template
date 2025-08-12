@@ -50,15 +50,22 @@ void UCPP_WeaponAnimComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	//Base模块初始化
-	if (BaseStates[DefaultBase].IsValid()){
+	if (BaseStates.Contains(DefaultBase)){
 		TargetBaseTransform = BaseStates[DefaultBase];
+		CurrentBaseLocation = TargetBaseTransform.GetLocation();
+		CurrentBaseRotation = TargetBaseTransform.GetRotation().Rotator();
 	}else{
 		ShouldPlayAnimation = false;
 		UE_LOG(LogTemp, Error, TEXT("Base default not found, check settings under Base"));
 	}
 	//Bob模块初始化
-	CurrentStaticBob = BobStates[DefaultBobStatic];
-	CurrentMovementBob = BobStates[DefaultBobMovement];
+	if (BobStates.Contains(DefaultBobStatic) && BobStates.Contains(DefaultBobMovement)){
+		CurrentStaticBob = BobStates[DefaultBobStatic];
+		CurrentMovementBob = BobStates[DefaultBobMovement];
+	}else{
+		ShouldPlayAnimation = false;
+		UE_LOG(LogTemp, Error, TEXT("Bob default not found, check settings under Bob"));
+	}
 	// ...
 }
 
@@ -79,7 +86,7 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 	if (WeaponRoot && CameraRoot && Sight) {
 		//遍历InitializeBases中的每一项并设置为WeaponRoot的相对变换
 		for (FName& InitializeBase : InitializeBases) {
-		    if (BaseStates[InitializeBase].IsValid()){
+		    if (BaseStates.Contains(InitializeBase)){
 				BaseStates[InitializeBase] = WeaponRoot->GetRelativeTransform();
 			}
 		}
@@ -335,21 +342,21 @@ void UCPP_WeaponAnimComponent::UpdateSettings()
 	switch (CurrentStance)
 	{
 	case EStanceState::Default:
-	CurrentBobMultiplier = 1.f;
-		TargetBaseTransform = BaseStates["IdleBase"];
+		CurrentBobMultiplier = 1.f;
 		CurrentStaticBob = BobStates["IdleBob"];
 		CurrentMovementBob = BobStates["WalkBob"];
+		SetBase("IdleBase");
 		break;
 	case EStanceState::Sprint:
 		CurrentBobMultiplier = 1.f;
 		CurrentMovementBob = BobStates["RunBob"];
-		TargetBaseTransform =BaseStates["SprintBase"];
+		SetBase("SprintBase");
 		break;
 	case EStanceState::Crouch:
 		CurrentBobMultiplier = 0.7;
-		TargetBaseTransform = BaseStates["CrouchBase"];
 		CurrentStaticBob = BobStates["IdleBob"];
 		CurrentMovementBob = BobStates["WalkBob"];
+		SetBase("CrouchBase");
 		break;
 	}
 }
@@ -463,4 +470,24 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 		CurrentRecoilGradualOffset = FMath::Lerp(CurrentRecoilGradualOffset, FVector::ZeroVector, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetRecoverRate));
 		CurrentRecoilGradualRotOffset = FMath::Lerp(CurrentRecoilGradualRotOffset, FRotator::ZeroRotator, SqrtAlpha(DeltaTime, CurrentRecoilStruct.RecoilGradualOffsetRecoverRate));
 	}
+}
+
+void UCPP_WeaponAnimComponent::SetBase(FName BaseName){
+	TargetBaseTransform = BaseStates[BaseName];
+}
+
+void UCPP_WeaponAnimComponent::SetRecoil(FName RecoilName){
+	CurrentRecoilStruct = RecoilStates[RecoilName];
+}
+
+void UCPP_WeaponAnimComponent::SetStaticBob(FName BobName){
+	CurrentMovementBob = BobStates[BobName];
+}
+
+void UCPP_WeaponAnimComponent::SetMovementBob(FName BobName){
+	CurrentStaticBob = BobStates[BobName];
+}
+
+void UCPP_WeaponAnimComponent::SetSway(FName SwayName){
+	CurrentSwayStruct = SwayStates[SwayName];
 }
