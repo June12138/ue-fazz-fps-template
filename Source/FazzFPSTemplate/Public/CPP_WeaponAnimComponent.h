@@ -38,6 +38,7 @@ public:
 	APlayerController* Controller = nullptr;
 	void TrySetController();
 	FVector CamInitialLocation;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void UpdateSettings();
 	//设置玩家输入数据
 	UFUNCTION(BlueprintCallable) void SetInputVector(FVector Vector);
@@ -167,8 +168,8 @@ public:
 	void UpdateTilt(float DeltaTime);
 	// ADS相关
 	bool ToADS = false;
-	bool PlayingADSAnimation = false;
-	bool IsAiming = false;
+	UPROPERTY(BlueprintReadonly) bool PlayingADSAnimation = false;
+	UPROPERTY(BlueprintReadonly) bool IsAiming = false;
 	FVector CurrentADSCorrection;
 	FVector TargetADSCorrection = FVector::ZeroVector;
 	FVector CurrentADSOffset = FVector::ZeroVector;

@@ -306,6 +306,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 			{
 				PlayingADSAnimation = false;
 				IsAiming = true;
+				UpdateSettings();
 			}
 		}
 		else {
@@ -313,6 +314,7 @@ void UCPP_WeaponAnimComponent::ADSCorrection(FVector TotalOffset, FRotator Total
 			if (CurrentADSTime == 0.f)
 			{
 				PlayingADSAnimation = false;
+				UpdateSettings();
 			}
 		}
 		ADSAlpha = ADSCurve->GetFloatValue(CurrentADSTime / ADSTime);
@@ -334,42 +336,7 @@ void UCPP_WeaponAnimComponent::UpdateMovementOffset()
 	}
 	TargetMovementRotationOffset = InputVector.X * MovementRotationOffsetMax;
 }
-void UCPP_WeaponAnimComponent::UpdateSettings()
-{
-	// ADS
-	if (IsAiming || PlayingADSAnimation) {
-		TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
-		SetSway("ADSSway");
-		SetRecoil("ADSRecoil");
-		SetStaticBob("IdleBobADS");
-		SetMovementBob("WalkBobADS");
-		JumpMultiplier = 0.1f;
-		return;
-	}
-	JumpMultiplier = 1.f;
-	SetSway("DefaultSway");
-	SetRecoil("DefaultRecoil");
-	switch (CurrentStance)
-	{
-	case EStanceState::Default:
-		BobMultiplier = 1.f;
-		SetStaticBob("IdleBob");
-		SetMovementBob("WalkBob");
-		SetBase("IdleBase");
-		break;
-	case EStanceState::Sprint:
-		BobMultiplier = 1.f;
-		SetMovementBob("RunBob");
-		SetBase("SprintBase");
-		break;
-	case EStanceState::Crouch:
-		BobMultiplier = 0.7;
-		SetStaticBob("IdleBob");
-		SetMovementBob("WalkBob");
-		SetBase("CrouchBase");
-		break;
-	}
-}
+void UCPP_WeaponAnimComponent::UpdateSettings_Implementation(){}
 void UCPP_WeaponAnimComponent::StartJump()
 {
 	if (CurrentJumpState == EJumpState::Default) {
@@ -483,24 +450,44 @@ void UCPP_WeaponAnimComponent::UpdateRecoil(float DeltaTime){
 }
 
 void UCPP_WeaponAnimComponent::SetBase(FName BaseName){
-	TargetBaseTransform = BaseStates[BaseName];
+	if (BaseStates.Contains(BaseName)){
+		TargetBaseTransform = BaseStates[BaseName];
+	}else{
+		UE_LOG(LogTemp, Error, TEXT("BaseName %s not found"), *BaseName.ToString());
+	}
 	if (IsAiming || PlayingADSAnimation){
 		TargetBaseTransform.SetRotation(ADSBaseRotation.Quaternion());
 	}
 }
 
 void UCPP_WeaponAnimComponent::SetRecoil(FName RecoilName){
-	CurrentRecoilStruct = RecoilStates[RecoilName];
+	if (RecoilStates.Contains(RecoilName)){
+		CurrentRecoilStruct = RecoilStates[RecoilName];
+	}else{
+		UE_LOG(LogTemp, Error, TEXT("RecoilName %s not found"), *RecoilName.ToString());
+	}
 }
 
 void UCPP_WeaponAnimComponent::SetStaticBob(FName BobName){
-	CurrentStaticBob = BobStates[BobName];
+	if (BobStates.Contains(BobName)){
+		CurrentStaticBob = BobStates[BobName];
+	}else{
+		UE_LOG(LogTemp, Error, TEXT("BobName %s not found"), *BobName.ToString());
+	}
 }
 
 void UCPP_WeaponAnimComponent::SetMovementBob(FName BobName){
-	CurrentMovementBob = BobStates[BobName];
+	if (BobStates.Contains(BobName)){
+		CurrentMovementBob = BobStates[BobName];
+	}else{
+		UE_LOG(LogTemp, Error, TEXT("BobName %s not found"), *BobName.ToString());
+	}
 }
 
 void UCPP_WeaponAnimComponent::SetSway(FName SwayName){
-	CurrentSwayStruct = SwayStates[SwayName];
+	if (SwayStates.Contains(SwayName)){
+		CurrentSwayStruct = SwayStates[SwayName];
+	}else{
+		UE_LOG(LogTemp, Error, TEXT("SwayName %s not found"), *SwayName.ToString());
+	}
 }
