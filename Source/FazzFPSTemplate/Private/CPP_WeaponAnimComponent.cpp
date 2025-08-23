@@ -135,34 +135,6 @@ void UCPP_WeaponAnimComponent::SetInputRotator(FRotator Rotator)
 	InputRotator = Rotator;
 }
 
-void UCPP_WeaponAnimComponent::StartSprint()
-{
-	if (CurrentStance != EStanceState::Sprint){
-		CurrentStance = EStanceState::Sprint;
-	}
-}
-
-void UCPP_WeaponAnimComponent::EndSprint()
-{
-	if (CurrentStance == EStanceState::Sprint){
-		CurrentStance = EStanceState::Default;
-	}
-}
-
-void UCPP_WeaponAnimComponent::StartCrouch()
-{
-	if (CurrentStance != EStanceState::Crouch){
-		CurrentStance = EStanceState::Crouch;
-	}
-}
-
-void UCPP_WeaponAnimComponent::EndCrouch()
-{
-	if (CurrentStance == EStanceState::Crouch){
-		CurrentStance = EStanceState::Default;
-	}
-}
-
 // Called every frame
 void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {

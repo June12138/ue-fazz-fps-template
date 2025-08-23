@@ -52,20 +52,9 @@ public:
 	FRotator RotationResult;
 	FVector JitterVector(FVector Input, FVector Jitter);
 	//基准
-	enum class EStanceState
-	{
-		Default,
-		Sprint,
-		Crouch
-	};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TMap<FName, FTransform> BaseStates;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") FName DefaultBase = "IdleBase"; //默认基准名
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base") TArray<FName> InitializeBases = {"IdleBase"}; //在游戏开始时，将WeaponRoot的Transform赋值给这个Base
-	EStanceState CurrentStance = EStanceState::Default;
-	UFUNCTION(BlueprintCallable) void StartSprint();
-	UFUNCTION(BlueprintCallable) void EndSprint();
-	UFUNCTION(BlueprintCallable) void StartCrouch();
-	UFUNCTION(BlueprintCallable) void EndCrouch();
 	//当前基准参数
 	FTransform TargetBaseTransform;
 	UFUNCTION(BlueprintCallable) void SetBase(FName BaseName);
