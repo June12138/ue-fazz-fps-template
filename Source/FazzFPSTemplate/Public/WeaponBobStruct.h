@@ -13,5 +13,6 @@ struct FWeaponBobStruct {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobLongitudeY = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobPitch = 3;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobYaw = 3;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobNoise = 0.5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobNoiseFrequencyMultiplier = 2.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bob") float BobNoiseLongitude = 0.5;
 };

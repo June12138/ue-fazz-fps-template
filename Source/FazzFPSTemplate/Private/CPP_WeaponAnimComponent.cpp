@@ -35,11 +35,11 @@ UCPP_WeaponAnimComponent::UCPP_WeaponAnimComponent()
 		5.f
 	});
 	//Bob模块默认值
-	BobStates.Add("IdleBob", FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 0.5});
-	BobStates.Add("WalkBob", FWeaponBobStruct{4, 3, 3, 3, 3, 0.7});
-	BobStates.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 0.7});
-	BobStates.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 0.15});
-	BobStates.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 0.15});
+	BobStates.Add("IdleBob", FWeaponBobStruct{0.75, 1.f, 0.f, 3, 0, 1, 0.5});
+	BobStates.Add("WalkBob", FWeaponBobStruct{4, 3, 3, 3, 3, 1, 0.7});
+	BobStates.Add("RunBob", FWeaponBobStruct{8, 3, 3, 3, 3, 1, 0.7});
+	BobStates.Add("IdleBobADS", FWeaponBobStruct{1, 0.f, 0.f, 0.05, 0, 1, 0.15});
+	BobStates.Add("WalkBobADS", FWeaponBobStruct{4, 0.f, 0.f, 0.1, 0.2, 1, 0.15});
 	//Sway模块默认值
 	SwayStates.Add("DefaultSway",FWeaponSwayStruct{5, 15, 5, 15});
 	SwayStates.Add("ADSSway", FWeaponSwayStruct{3, 0.3, 3, 0.3});
@@ -257,7 +257,7 @@ void UCPP_WeaponAnimComponent::UpdateBob()
 	// 计算目标 Bob 位移
 	float HorizontalMultiplier = FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier * 2 + PI * 0.25) * multiplier;
 	float VerticalMultiplier = FMath::Sin(ElapsedTime * CurrentBob.BobFrequencyMultiplier) * multiplier;
-	float Noise = FMath::PerlinNoise1D(ElapsedTime) * CurrentBob.BobNoise * multiplier;
+	float Noise = FMath::PerlinNoise1D(ElapsedTime * CurrentBob.BobNoiseFrequencyMultiplier) * CurrentBob.BobNoiseLongitude * multiplier;
 	if (VerticalMultiplier <= 0.f) VerticalMultiplier *= 0.25f;
 	float Z = HorizontalMultiplier * CurrentBob.BobLongitudeZ + Noise;
 	float Y = VerticalMultiplier * CurrentBob.BobLongitudeY + Noise;
