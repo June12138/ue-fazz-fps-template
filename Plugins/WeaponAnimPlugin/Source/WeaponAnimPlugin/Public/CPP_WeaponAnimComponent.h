@@ -12,7 +12,7 @@
 #include "CPP_WeaponAnimComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
-class FAZZFPSTEMPLATE_API UCPP_WeaponAnimComponent : public UActorComponent
+class WEAPONANIMPLUGIN_API UCPP_WeaponAnimComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
