@@ -92,7 +92,7 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 		CurrentBaseLocation = TargetBaseTransform.GetLocation();
 		CurrentBaseRotation = TargetBaseTransform.GetRotation().Rotator();
 	}else{
-		ShouldPlayAnimation = false;
+		SetComponentTickEnabled(false);
 		UE_LOG(LogTemp, Error, TEXT("Base default not found, check settings under Base"));
 	}
 	//Bob模块初始化
@@ -100,20 +100,21 @@ void UCPP_WeaponAnimComponent::Init(USceneComponent *WeaponRootToSet, USceneComp
 		CurrentStaticBob = BobStates[DefaultBobStatic];
 		CurrentMovementBob = BobStates[DefaultBobMovement];
 	}else{
-		ShouldPlayAnimation = false;
+		SetComponentTickEnabled(false);
 		UE_LOG(LogTemp, Error, TEXT("Bob default not found, check settings under Bob"));
 	}
 	//Sway模块初始化
 	if (SwayStates.Contains(DefaultSway)){
 		CurrentSwayStruct = SwayStates[DefaultSway];
 	}else{
-		ShouldPlayAnimation = false;
+		SetComponentTickEnabled(false);
 		UE_LOG(LogTemp, Error, TEXT("Sway default not found, check settings under Sway"));
 	}
 	//Recoil模块初始化
 	if (RecoilStates.Contains(DefaultRecoil)){
 		CurrentRecoilStruct = RecoilStates[DefaultRecoil];
 	}
+	UE_LOG(LogTemp, Warning, TEXT("WeaponAnimComponent Init Success"));
 }
 void UCPP_WeaponAnimComponent::SetSight(USceneComponent* SightToSet, float Offset, FRotator SightRotation){
 	Sight = SightToSet;
@@ -139,7 +140,6 @@ void UCPP_WeaponAnimComponent::SetInputRotator(FRotator Rotator)
 void UCPP_WeaponAnimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!ShouldPlayAnimation) return;
 	//UpdateSettings();
 	ElapsedTime += DeltaTime;
 	// 更新基准位置和旋转
