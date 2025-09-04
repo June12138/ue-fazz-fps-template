@@ -1,0 +1,3 @@
+[submodule "Plugins/WeaponAnimPlugin"]
+	path = Plugins/WeaponAnimPlugin
+	url = https://github.com/June12138/ue-weapon-animation-component
